@@ -4,8 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>MacroLog - 食事記録</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,15 +18,19 @@
   </header>
 
   <main>
-    <!-- 今日 -->
-    <section id="view-today" class="view active">
-      <div class="date-nav">
-        <button id="prevDay" aria-label="前の日">‹</button>
-        <button id="dateLabel" class="date-label"></button>
-        <button id="nextDay" aria-label="次の日">›</button>
-      </div>
+    <div class="date-nav" id="dateNav">
+      <button id="prevDay" aria-label="前の日">‹</button>
+      <button id="dateLabel" class="date-label" title="今日に戻る"></button>
+      <button id="nextDay" aria-label="次の日">›</button>
+    </div>
 
+    <!-- 食事 -->
+    <section id="view-today" class="view active">
       <div class="card summary">
+        <div class="day-type-row">
+          <button id="dayTypeBtn" class="chip"></button>
+          <span id="dayTypeNote" class="muted small"></span>
+        </div>
         <div class="kcal-row">
           <div>
             <div class="muted small">摂取 / 目標</div>
@@ -38,10 +45,30 @@
         <div class="macros" id="macroBars"></div>
         <p class="hint" id="proteinHint"></p>
       </div>
-
       <div id="meals"></div>
-
       <button id="copyPrev" class="btn ghost full">前日の食事をコピー</button>
+    </section>
+
+    <!-- 筋トレ -->
+    <section id="view-training" class="view">
+      <div class="card">
+        <h2>種目を追加</h2>
+        <form id="exerciseForm" class="row">
+          <input id="exerciseName" list="exerciseList" placeholder="例: ベンチプレス" required autocomplete="off">
+          <button class="btn">追加</button>
+        </form>
+        <datalist id="exerciseList"></datalist>
+      </div>
+      <div id="workoutList"></div>
+      <div class="card">
+        <h2>今週のまとめ</h2>
+        <div id="weekSummary"></div>
+      </div>
+      <div class="card">
+        <h2>自己ベスト（推定1RM）</h2>
+        <ul id="prList" class="list"></ul>
+        <p class="hint">推定1RM＝重量×(1＋回数÷30)（Epley式）。10回を超える高回数では誤差が大きくなります。</p>
+      </div>
     </section>
 
     <!-- 体重 -->
@@ -75,7 +102,7 @@
           </label>
           <label>年齢 <input type="number" name="age" min="10" max="100" required></label>
           <label>身長 (cm) <input type="number" name="height" step="0.1" min="100" max="250" required></label>
-          <label>体重 (kg) <input type="number" name="weight" step="0.1" min="20" max="300" required></label>
+          <label>体重 (kg) <input type="number" name="weight" step="any" min="20" max="300" required></label>
           <label>活動レベル
             <select name="activity">
               <option value="1.2">ほぼ運動しない</option>
@@ -92,8 +119,10 @@
               <option value="bulk">増量（バルクアップ）</option>
             </select>
           </label>
+          <label class="check"><input type="checkbox" name="carbCycle"> トレ日／休養日で目標を変える（カーボサイクル）</label>
+          <p class="hint indent">トレ日は炭水化物を増やして＋10%、休養日は−10%。筋トレを記録した日は自動でトレ日になります。</p>
           <label class="check"><input type="checkbox" name="manual" id="manualToggle"> 目標値を手動で設定する</label>
-          <div id="manualFields" class="manual hidden">
+          <div id="manualFields" class="grid2 hidden">
             <label>kcal <input type="number" name="mKcal" min="0"></label>
             <label>P (g) <input type="number" name="mP" min="0"></label>
             <label>F (g) <input type="number" name="mF" min="0"></label>
@@ -108,6 +137,17 @@
         <p class="hint">基礎代謝はMifflin-St Jeor式で推定。減量はTDEE×0.8、増量はTDEE×1.1、たんぱく質は体重×（減量2.2／維持1.8／増量2.0）g、脂質は総カロリーの25%、残りを炭水化物に配分しています。あくまで目安なので、体重推移を見て調整してください。</p>
       </div>
       <div class="card">
+        <h2>写真AI（任意）</h2>
+        <form id="aiForm" class="form">
+          <label>Claude APIキー
+            <input type="password" name="apiKey" placeholder="sk-ant-..." autocomplete="off">
+          </label>
+          <label>モデル <select name="model" id="aiModel"></select></label>
+          <button class="btn full">保存</button>
+        </form>
+        <p class="hint">食事写真の推定・栄養成分表示の読み取りに使います。APIキーは <a href="https://console.anthropic.com/" target="_blank" rel="noopener">Anthropic Console</a> で発行でき、利用量に応じて課金されます（目安：1枚あたり数円）。キーはこの端末にだけ保存され、書き出しデータにも含まれません。他人とキーを共有せず、Console で利用上限を設定しておくのがおすすめです。</p>
+      </div>
+      <div class="card">
         <h2>データ</h2>
         <div class="row">
           <button id="exportBtn" class="btn ghost">書き出し(JSON)</button>
@@ -116,28 +156,38 @@
         <p class="hint">データはこの端末のブラウザ内にのみ保存されます。機種変更前に書き出してください。</p>
         <button id="resetBtn" class="btn danger full">全データを削除</button>
       </div>
+      <p class="hint center">食品の栄養値は日本食品標準成分表（八訂）等を参考にした概算です。バーコード検索は <a href="https://world.openfoodfacts.org/" target="_blank" rel="noopener">Open Food Facts</a>（ODbL）のデータを利用しています。</p>
     </section>
   </main>
 
   <nav class="tabbar">
     <button data-view="today" class="active">🍽<span>食事</span></button>
+    <button data-view="training">🏋️<span>筋トレ</span></button>
     <button data-view="weight">⚖️<span>体重</span></button>
     <button data-view="settings">⚙️<span>設定</span></button>
   </nav>
 
-  <!-- 食品追加モーダル -->
+  <!-- 食品追加 -->
   <dialog id="addDialog">
     <div class="dialog-head">
       <h2 id="addTitle">食品を追加</h2>
       <button class="icon" id="closeAdd" aria-label="閉じる">✕</button>
     </div>
-    <div class="seg">
-      <button data-mode="search" class="active">食品から選ぶ</button>
+    <div class="quick-actions">
+      <button id="aiMealBtn">📷<span>写真でAI推定</span></button>
+      <button id="aiLabelBtn">🏷<span>成分表示を撮影</span></button>
+      <button id="barcodeBtn">▥<span>バーコード</span></button>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" hidden>
+    <div class="seg" id="addSeg">
+      <button data-mode="search" class="active">食品</button>
+      <button data-mode="templates">セット</button>
       <button data-mode="manual">手入力</button>
     </div>
 
-    <div id="modeSearch">
-      <input type="search" id="foodSearch" placeholder="食品名で検索（例: 鶏むね）">
+    <div id="modeSearch" class="mode">
+      <input type="search" id="foodSearch" placeholder="食品名で検索（ひらがなOK）">
+      <div class="chips" id="categoryChips"></div>
       <ul id="foodList" class="list food-list"></ul>
       <div id="amountPanel" class="amount hidden">
         <div class="amount-name" id="selName"></div>
@@ -150,7 +200,13 @@
       </div>
     </div>
 
-    <form id="modeManual" class="form hidden">
+    <div id="modeTemplates" class="mode hidden">
+      <ul id="templateList" class="list"></ul>
+      <p class="hint">食事画面の各食事にある「セット保存」で、よく食べる組み合わせを登録できます。</p>
+    </div>
+
+    <form id="modeManual" class="mode form hidden">
+      <p id="manualNote" class="note hidden"></p>
       <label>食品名 <input name="name" required placeholder="例: コンビニ弁当"></label>
       <div class="grid4">
         <label>kcal <input name="kcal" type="number" step="any" min="0" required inputmode="decimal"></label>
@@ -158,13 +214,39 @@
         <label>F (g) <input name="f" type="number" step="any" min="0" required inputmode="decimal"></label>
         <label>C (g) <input name="c" type="number" step="any" min="0" required inputmode="decimal"></label>
       </div>
+      <label>数量（上の値の何倍食べたか） <input name="qty" type="number" step="any" min="0" value="1" inputmode="decimal"></label>
       <label class="check"><input type="checkbox" name="save" checked> マイ食品に保存（次から検索に出ます）</label>
-      <p class="hint">パッケージの栄養成分表示（1食分）をそのまま入力してください。</p>
+      <p class="hint">パッケージの栄養成分表示をそのまま入力してください。</p>
       <button class="btn full">追加</button>
+    </form>
+
+    <div id="modeAi" class="mode hidden">
+      <div id="aiStatus" class="ai-status"></div>
+      <ul id="aiItems" class="list ai-items"></ul>
+      <p id="aiNote" class="hint"></p>
+      <button id="aiAdd" class="btn full hidden">チェックした食品を追加</button>
+    </div>
+  </dialog>
+
+  <!-- バーコード読み取り -->
+  <dialog id="scanDialog">
+    <div class="dialog-head">
+      <h2>バーコード読み取り</h2>
+      <button class="icon" id="scanCancel" aria-label="閉じる">✕</button>
+    </div>
+    <div class="scan-box">
+      <video id="scanVideo" playsinline muted></video>
+      <div class="scan-frame"></div>
+    </div>
+    <p id="scanStatus" class="hint"></p>
+    <form id="scanManual" class="row">
+      <input name="code" inputmode="numeric" placeholder="JANコードを手入力">
+      <button class="btn ghost">検索</button>
     </form>
   </dialog>
 
-  <script src="foods.js"></script>
-  <script src="app.js"></script>
+  <div id="toast" class="toast" popover="manual" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

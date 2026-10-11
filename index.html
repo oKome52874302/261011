@@ -13,7 +13,10 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>MacroLog</h1>
+    <div class="brand">
+      <h1>MacroLog</h1>
+      <button class="status-chip" id="statusChip" title="実績を見る"></button>
+    </div>
     <span class="goal-badge" id="goalBadge"></span>
   </header>
 
@@ -92,6 +95,17 @@
       </div>
     </section>
 
+    <!-- 実績 -->
+    <section id="view-achievements" class="view">
+      <div class="card" id="levelCard"></div>
+      <div class="card" id="weeklyCard"></div>
+      <div class="card">
+        <h2>実績</h2>
+        <div id="achievementList"></div>
+        <p class="hint">体重の増減やカロリーの少なさではなく、「記録する・たんぱく質をとる・トレーニングする」といった行動を評価しています。</p>
+      </div>
+    </section>
+
     <!-- 設定 -->
     <section id="view-settings" class="view">
       <div class="card">
@@ -164,6 +178,7 @@
     <button data-view="today" class="active">🍽<span>食事</span></button>
     <button data-view="training">🏋️<span>筋トレ</span></button>
     <button data-view="weight">⚖️<span>体重</span></button>
+    <button data-view="achievements">🏆<span>実績</span></button>
     <button data-view="settings">⚙️<span>設定</span></button>
   </nav>
 

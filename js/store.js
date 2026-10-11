@@ -13,6 +13,8 @@ export function defaultState() {
     workouts: {},      // { 'YYYY-MM-DD': [{ id, exercise, sets: [{ w, r }] }] }
     trainingDays: {},  // { 'YYYY-MM-DD': true/false } 手動で切り替えた日
     ai: { model: 'claude-opus-5-5' },
+    achievements: {}, // { 実績ID: 解除日 }
+    level: 1,
   };
 }
 

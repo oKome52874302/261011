@@ -4,14 +4,16 @@ import { renderToday, targetsFor } from './today.js';
 import { renderTraining } from './training.js';
 import { renderWeight } from './weight.js';
 import { renderSettings } from './settings.js';
+import { renderAchievements, checkAchievements, statusChipText } from './achievements.js';
 
 const GOAL_LABEL = { cut: '減量中', maintain: '維持', bulk: '増量中' };
-const VIEWS = { today: renderToday, training: renderTraining, weight: renderWeight, settings: renderSettings };
+const VIEWS = { today: renderToday, training: renderTraining, weight: renderWeight, achievements: renderAchievements, settings: renderSettings };
 let view = 'today';
 
 function render() {
   $('#dateLabel').textContent = dateLabel(db.date);
-  $('#dateNav').classList.toggle('hidden', view === 'weight' || view === 'settings');
+  $('#dateNav').classList.toggle('hidden', !['today', 'training'].includes(view));
+  $('#statusChip').textContent = statusChipText();
   const t = targetsFor(db.date);
   $('#goalBadge').textContent = `${GOAL_LABEL[db.state.profile.goal]} ・ 目標 ${t.kcal}kcal`;
   VIEWS[view]();
@@ -26,6 +28,7 @@ function show(name) {
 }
 
 $$('.tabbar button').forEach((b) => (b.onclick = () => show(b.dataset.view)));
+$('#statusChip').onclick = () => show('achievements');
 $('#prevDay').onclick = () => { db.date = shiftKey(db.date, -1); render(); };
 $('#nextDay').onclick = () => { db.date = shiftKey(db.date, 1); render(); };
 $('#dateLabel').onclick = () => { db.date = todayKey(); render(); };
@@ -39,4 +42,6 @@ document.addEventListener('visibilitychange', () => {
 });
 
 onChange(render);
+onChange(checkAchievements);
 show(db.isFirstRun ? 'settings' : 'today');
+if (!db.isFirstRun) checkAchievements();

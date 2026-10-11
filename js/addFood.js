@@ -275,7 +275,7 @@ $('#aiAdd').onclick = () => {
       const v = (k) => Number($(`input[name=${k}]`, li).value) || 0;
       return {
         name: $('input[name=name]', li).value.trim() || '食品',
-        amountLabel: `約${v('grams')}g・AI推定`,
+        amountLabel: `約${v('grams')}g・AI推定`, src: 'ai',
         kcal: round(v('kcal')), p: round(v('p'), 1), f: round(v('f'), 1), c: round(v('c'), 1),
       };
     });

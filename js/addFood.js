@@ -4,6 +4,8 @@ import { db, save, uid } from './store.js';
 import { round, nutrientsFor, scale, sumEntries } from './calc.js';
 import { $, $$, el, toast, normalize } from './dom.js';
 import { analyzeMealPhoto, readNutritionLabel } from './ai.js';
+import { recognizeLabel, parseNutritionText } from './ocr.js';
+import { getApiKey } from './store.js';
 import { scanBarcode, lookupBarcode } from './barcode.js';
 
 const dialog = $('#addDialog');
@@ -11,7 +13,7 @@ let activeMeal = null;
 let selectedFood = null;
 let category = 'すべて';
 let pendingBarcode = null; // 手入力で保存するマイ食品に紐づけるバーコード
-let manualUnit = null;     // 成分表示AIで読んだ基準量
+let manualUnit = null;     // 成分表示から読んだ基準量
 
 const allFoods = () => [...db.state.customFoods, ...BUILTIN_FOODS];
 
@@ -30,6 +32,7 @@ export function openAdd(meal) {
   pendingBarcode = null;
   manualUnit = null;
   $('#addTitle').textContent = `${meal.label}に追加`;
+  $('#aiMealNeedKey').classList.toggle('hidden', !!getApiKey());
   $('#foodSearch').value = '';
   $('#amountPanel').classList.add('hidden');
   resetManual();
@@ -189,6 +192,9 @@ export function saveTemplate(entries, defaultName) {
 // ---------- 手入力 ----------
 function resetManual(note) {
   $('#modeManual').reset();
+  manualUnit = null;
+  $('#pasteBox').open = false;
+  $('#labelAiRetry').classList.add('hidden');
   $('#manualNote').textContent = note || '';
   $('#manualNote').classList.toggle('hidden', !note);
 }
@@ -216,7 +222,16 @@ $('#modeManual').addEventListener('submit', (e) => {
 
 // ---------- 写真AI ----------
 let photoMode = 'meal';
-$('#aiMealBtn').onclick = () => { photoMode = 'meal'; pickPhoto(); };
+$('#aiMealBtn').onclick = () => {
+  if (!getApiKey()) {
+    setMode('ai');
+    $('#aiStatus').textContent = '食事写真から料理と量を推定するには、設定画面で Claude のAPIキーを登録してください。';
+    $('#aiNote').textContent = '料理の判別と量の推定は、スマホ内だけで処理すると精度が大きく落ちるため、AI（APIキー）が必要です。キーなしでも「🏷 成分表示を撮影」「▥ バーコード」「セット」は使えます。';
+    return;
+  }
+  photoMode = 'meal';
+  pickPhoto();
+};
 $('#aiLabelBtn').onclick = () => { photoMode = 'label'; pickPhoto(); };
 
 function pickPhoto() {
@@ -285,30 +300,72 @@ $('#aiAdd').onclick = () => {
   dialog.close();
 };
 
+let lastLabelFile = null;
+
+// 読み取り結果を手入力フォームに反映（null の項目は空欄のまま）
+function fillManualFromLabel(r, note) {
+  const keepBarcode = pendingBarcode;
+  resetManual(note);
+  pendingBarcode = keepBarcode;
+  manualUnit = r.basis ? { label: r.basis, ...(r.basisGrams > 0 ? { g: r.basisGrams } : {}) } : null;
+  applyParsed(r);
+  const form = $('#modeManual');
+  if (r.name) form.elements.name.value = r.name;
+  $('#labelAiRetry').classList.toggle('hidden', !getApiKey() || !lastLabelFile);
+  setMode('manual');
+}
+
+function applyParsed(r) {
+  const form = $('#modeManual');
+  for (const [k, d] of [['kcal', 0], ['p', 1], ['f', 1], ['c', 1]]) {
+    if (r[k] !== null && r[k] !== undefined) form.elements[k].value = round(r[k], d);
+  }
+}
+
+// 端末内OCR（無料・オフライン・画像は送信しない）
 async function handleLabel(file) {
-  aiBusy('栄養成分表示を読み取っています…');
+  lastLabelFile = file;
+  aiBusy('成分表示を読み取っています（スマホ内で処理）…');
+  try {
+    const r = await recognizeLabel(file, (msg) => {
+      $('#aiStatus').replaceChildren(el('span', { class: 'spinner' }), msg);
+    });
+    const ok = r.found >= 2;
+    fillManualFromLabel(r, ok
+      ? `📋 読み取り結果（${r.basis ? `${r.basis}あたり` : '基準量不明'}・${r.found}/4項目）。数値が合っているか確認して「追加」してください。`
+      : '⚠️ 数値をうまく読み取れませんでした。成分表示だけを画面いっぱいに、まっすぐ・明るく撮り直すか、下の読み取りテキストを直してください。');
+    $('#pasteText').value = r.text.trim();
+    $('#pasteBox').open = !ok;
+    $('#modeManual').elements.name.focus();
+  } catch (err) {
+    $('#aiStatus').textContent = `⚠️ 読み取りに失敗しました: ${err.message}`;
+  }
+}
+
+// APIキーがある場合の高精度読み取り
+async function handleLabelAi(file) {
+  aiBusy('AIで栄養成分表示を読み取っています…');
   try {
     const r = await readNutritionLabel(file);
     if (!r.found) {
       $('#aiStatus').textContent = '⚠️ 栄養成分表示を読み取れませんでした。表示部分を大きく、ピントを合わせて撮影してください。';
       return;
     }
-    const keepBarcode = pendingBarcode;
-    resetManual(`📋 読み取り結果（${r.basis || '基準量不明'}）。内容を確認して「追加」してください。`);
-    pendingBarcode = keepBarcode;
-    manualUnit = { label: r.basis ? r.basis.replace(/あたり|当たり/g, '') : '1食', ...(r.basisGrams > 0 ? { g: r.basisGrams } : {}) };
-    const form = $('#modeManual');
-    form.elements.name.value = r.name || '';
-    form.elements.kcal.value = round(r.kcal);
-    form.elements.p.value = round(r.p, 1);
-    form.elements.f.value = round(r.f, 1);
-    form.elements.c.value = round(r.c, 1);
-    setMode('manual');
-    if (!r.name) form.elements.name.focus();
+    const basis = r.basis ? r.basis.replace(/あたり|当たり/g, '') : '';
+    fillManualFromLabel({ ...r, basis }, `📋 AIの読み取り結果（${r.basis || '基準量不明'}）。内容を確認して「追加」してください。`);
+    $('#labelAiRetry').classList.add('hidden');
   } catch (err) {
     $('#aiStatus').textContent = `⚠️ ${err.message}`;
   }
 }
+$('#labelAiRetry').onclick = () => lastLabelFile && handleLabelAi(lastLabelFile);
+
+// 貼り付けたテキストから自動入力
+$('#pasteText').addEventListener('input', (e) => {
+  const r = parseNutritionText(e.target.value);
+  applyParsed(r);
+  if (r.basis && !manualUnit) manualUnit = { label: r.basis, ...(r.basisGrams > 0 ? { g: r.basisGrams } : {}) };
+});
 
 // ---------- バーコード ----------
 $('#barcodeBtn').onclick = async () => {
@@ -335,7 +392,7 @@ $('#barcodeBtn').onclick = async () => {
     toast('商品が見つかりました（マイ食品に保存）');
     selectFood(food);
   } else {
-    resetManual(`バーコード ${code} の商品はデータベースにありませんでした。「🏷 成分表示を撮影」でAI入力するか、手入力してください。保存すると次回からこのバーコードで呼び出せます。`);
+    resetManual(`バーコード ${code} の商品はデータベースにありませんでした。「🏷 成分表示を撮影」で読み取るか、手入力してください。保存すると次回からこのバーコードで呼び出せます。`);
     pendingBarcode = code;
     setMode('manual');
   }

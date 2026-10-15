@@ -3,6 +3,7 @@ import { db, save, uid, shiftKey, isTrainingDay, dayTargets } from './store.js';
 import { sumEntries, round } from './calc.js';
 import { $, el, setBar, toast } from './dom.js';
 import { openAdd, saveTemplate } from './addFood.js';
+import { sportsSummary } from './sports.js';
 import { activityText, readHealthFromClipboard, saveActivity, isIOS, runShortcut, justReturnedFromShortcut, clearShortcutRun } from './health.js';
 
 export const MEALS = [
@@ -113,7 +114,8 @@ function renderActivity(t) {
   const head = el('div', { class: 'activity-row' },
     el('div', {},
       el('div', { class: a ? 'activity-val' : 'muted' }, a ? activityText(a) : '👟 歩数・距離は未記録'),
-      t.linked && el('div', { class: 'muted small' }, a ? `活動消費 +${t.exercise}kcal を目標に反映中` : '歩数を取り込むと目標に活動分が加算されます')),
+      sportsSummary(db.date) && el('div', { class: 'activity-val sport-line' }, sportsSummary(db.date)),
+      t.linked && el('div', { class: 'muted small' }, (a || t.sports) ? `活動消費 +${t.exercise}kcal を目標に反映中` : '歩数を取り込むと目標に活動分が加算されます')),
     el('div', { class: 'meal-actions' },
       isIOS() && el('button', { class: 'add-btn', onclick: runShortcut, title: 'ショートカットを実行して歩数を取得' }, '🔄 同期'),
       el('button', { class: `add-btn${pendingImport ? ' pulse' : ''}`, onclick: importFromClipboard }, '📋 取り込む'),

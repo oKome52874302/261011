@@ -59,6 +59,11 @@ export function computeStats() {
     sinceFreeze = (i - 1) - lastFreeze; // 今日記録しなかった場合におやすみが使えるか
   }
 
+  // 部活・スポーツ
+  const sportMinutes = Object.entries(s.exercises || {}).filter(([k]) => k <= today)
+    .reduce((sum, [, list]) => sum + list.reduce((m, x) => m + (x.minutes || 0), 0), 0);
+  const sportDays = new Set(Object.keys(s.exercises || {}).filter((k) => k <= today && s.exercises[k].length));
+
   // 今週（月曜始まり）
   const d = fromKey(today);
   const monday = shiftKey(today, -((d.getDay() + 6) % 7));
@@ -68,7 +73,7 @@ export function computeStats() {
     const k = shiftKey(monday, i);
     if (logged.has(k)) week.log++;
     if (proteinDays.has(k)) week.protein++;
-    if (wset.has(k)) week.workout++;
+    if (wset.has(k) || sportDays.has(k)) week.workout++;
   }
 
   const acts = Object.entries(s.activity || {}).filter(([k]) => k <= today).map(([, v]) => v);
@@ -81,7 +86,7 @@ export function computeStats() {
 
   return {
     logDays: logDays.length, proteinDays: proteinDays.size, perfectDays: perfectDays.size,
-    workoutDays: workoutDays.length, prs, weightDays, aiUses, steps10kDays, totalKm,
+    workoutDays: workoutDays.length, prs, weightDays, aiUses, steps10kDays, totalKm, sportMinutes, sportDays: sportDays.size,
     barcode: s.customFoods.filter((f) => f.barcode).length,
     customFoods: s.customFoods.length, templates: s.templates.length,
     streak: current, bestStreak, freezeAvailable: sinceFreeze >= FREEZE_INTERVAL,
@@ -127,6 +132,10 @@ export const ACHIEVEMENTS = [
   A('weekWorkout3', '筋トレ', '📆', '週3トレーニー', '1週間で3日トレーニング', 3, (s) => s.week.workout),
   A('pr1', '筋トレ', '🎉', '自己ベスト更新', '推定1RMを更新', 1, (s) => s.prs),
   A('pr10', '筋トレ', '🚀', '成長期', '自己ベストを累計10回更新', 10, (s) => s.prs),
+
+  A('sport1', '運動', '🏸', '部活・サークル参加', '運動（部活・スポーツ）を記録', 1, (s) => s.sportDays),
+  A('sport10h', '運動', '⏱️', '10時間の汗', '運動の合計が10時間', 10, (s) => Math.floor(s.sportMinutes / 60)),
+  A('sport50h', '運動', '🏅', '部活の鬼', '運動の合計が50時間', 50, (s) => Math.floor(s.sportMinutes / 60)),
 
   A('steps1', '歩数', '👟', '1万歩', '1日1万歩を達成', 1, (s) => s.steps10kDays),
   A('steps10', '歩数', '🚶', 'よく歩く人', '1万歩の日が累計10日', 10, (s) => s.steps10kDays),
@@ -190,7 +199,7 @@ export function renderAchievements() {
       ? '💤 おやすみ 使用可：7日に1回まで、1日記録を忘れても連続記録が続きます。'
       : '💤 おやすみ 使用済み：次に使えるのは最後に使ってから7日後です。'));
 
-  const goals = [['📝 記録', st.week.log, 5], ['🥩 たんぱく質達成', st.week.protein, 4], ['🏋️ 筋トレ', st.week.workout, 3]];
+  const goals = [['📝 記録', st.week.log, 5], ['🥩 たんぱく質達成', st.week.protein, 4], ['🏋️ 筋トレ・運動', st.week.workout, 3]];
   $('#weeklyCard').replaceChildren(
     el('h2', {}, '今週のチャレンジ'),
     ...goals.map(([label, v, goal]) => el('div', { class: 'weekly-row' },

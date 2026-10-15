@@ -1,6 +1,6 @@
 // 週間レポートを作って LINE などに送る
 import { db, todayKey, shiftKey, fromKey, dayTargets } from './store.js';
-import { sumEntries, e1rm, round } from './calc.js';
+import { sumEntries, e1rm, round, sessionKcal } from './calc.js';
 import { $, $$, toast } from './dom.js';
 import { computeStats, levelInfo, ACHIEVEMENTS } from './achievements.js';
 
@@ -51,11 +51,12 @@ export function weekReport(monday) {
     }
   }
 
-  let stepSum = 0, stepDays = 0, kmSum = 0;
+  let stepSum = 0, stepDays = 0, kmSum = 0, sportMin = 0, sportKcal = 0;
   for (const k of days) {
     const a = s.activity?.[k];
     if (a?.steps != null) { stepSum += a.steps; stepDays++; }
     if (a?.distanceKm) kmSum += a.distanceKm;
+    for (const x of s.exercises?.[k] || []) { sportMin += x.minutes; sportKcal += sessionKcal(x, s.profile.weight).gross; }
   }
 
   const weights = Object.keys(s.weights).filter((k) => k >= monday && k <= end).sort();
@@ -73,6 +74,7 @@ export function weekReport(monday) {
     avgP: logDays ? round(pSum / logDays) : 0,
     prs, prNames: [...prNames],
     avgSteps: stepDays ? round(stepSum / stepDays) : 0, totalKm: round(kmSum, 1),
+    sportMin, sportKcal: round(sportKcal),
     weightFrom: weights.length ? s.weights[weights[0]] : null,
     weightTo: weights.length > 1 ? s.weights[weights.at(-1)] : null,
     unlocked, streak: st.streak, level: levelInfo(st.xp),
@@ -90,6 +92,7 @@ export function reportText(r) {
     lines.push(`🍚 平均 ${r.avgKcal.toLocaleString()}kcal（目標の${r.kcalRate}%）`);
   }
   lines.push(r.workoutDays ? `🏋️ 筋トレ ${r.workoutDays}日・${r.sets}セット・総ボリューム ${r.volume.toLocaleString()}kg` : '🏋️ 筋トレ 0日');
+  if (r.sportMin) lines.push(`🏸 運動 ${r.sportMin}分・約${r.sportKcal.toLocaleString()}kcal`);
   if (r.avgSteps || r.totalKm) lines.push(`👟 平均 ${r.avgSteps.toLocaleString()}歩・合計 ${r.totalKm}km`);
   if (r.prs) lines.push(`🎉 自己ベスト更新 ${r.prs}回（${r.prNames.join('・')}）`);
   if (r.unlocked.length) lines.push(`🏆 実績解除：${achievementNames(r.unlocked)}`);
@@ -193,7 +196,7 @@ export function openShare() {
   const thisMonday = mondayOf(todayKey());
   const s = db.state;
   const has = (obj, ok) => Object.keys(obj || {}).some((k) => k >= thisMonday && ok(obj[k]));
-  const empty = !has(s.logs, (v) => v.length) && !has(s.workouts, (v) => v.some((w) => w.sets.length)) && !has(s.activity, () => true);
+  const empty = !has(s.logs, (v) => v.length) && !has(s.workouts, (v) => v.some((w) => w.sets.length)) && !has(s.activity, () => true) && !has(s.exercises, (v) => v.length);
   build(empty ? 'last' : 'this');
   dialog.showModal();
 }

@@ -1,5 +1,5 @@
 // 状態の保存・読み込み
-import { calcTargets } from './calc.js';
+import { calcTargets, sessionKcal } from './calc.js';
 
 export const STORAGE_KEY = 'macrolog-v1';
 const API_KEY_STORAGE = 'macrolog-apikey'; // 書き出しJSONに含めないよう別キーで保存
@@ -20,6 +20,8 @@ export function defaultState() {
     routines: [],     // トレーニングメニュー { id, name, items: [{ exercise, sets, reps, weight }] }
     group: {},        // 友達グループ { code, nickname, url?, key? }
     activity: {},     // { 'YYYY-MM-DD': { steps, distanceKm, activeKcal, source } } ヘルスケア等から
+    exercises: {},    // { 'YYYY-MM-DD': [{ id, name, mets, minutes, ratio, inHealth }] } 部活・スポーツ
+    exerciseMenus: [], // 運動メニュー { id, name, items: [{ name, mets, minutes, ratio }] }
   };
 }
 
@@ -98,5 +100,11 @@ export function isTrainingDay(k) {
 
 // その日の目標（トレ日・歩数連動を反映）
 export function dayTargets(k) {
-  return calcTargets(db.state.profile, { training: isTrainingDay(k), activity: db.state.activity?.[k] });
+  return calcTargets(db.state.profile, { training: isTrainingDay(k), activity: db.state.activity?.[k], sportsNet: sportsNetFor(k) });
+}
+
+// その日の運動（部活・スポーツ等）のうち、ヘルスケアの記録に含まれない分の消費（安静時を除く）
+export function sportsNetFor(k) {
+  const w = db.state.profile.weight;
+  return (db.state.exercises?.[k] || []).filter((s) => !s.inHealth).reduce((sum, s) => sum + sessionKcal(s, w).net, 0);
 }

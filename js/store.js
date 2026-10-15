@@ -1,4 +1,6 @@
 // 状態の保存・読み込み
+import { calcTargets } from './calc.js';
+
 export const STORAGE_KEY = 'macrolog-v1';
 const API_KEY_STORAGE = 'macrolog-apikey'; // 書き出しJSONに含めないよう別キーで保存
 
@@ -17,6 +19,7 @@ export function defaultState() {
     level: 1,
     routines: [],     // トレーニングメニュー { id, name, items: [{ exercise, sets, reps, weight }] }
     group: {},        // 友達グループ { code, nickname, url?, key? }
+    activity: {},     // { 'YYYY-MM-DD': { steps, distanceKm, activeKcal, source } } ヘルスケア等から
   };
 }
 
@@ -91,4 +94,9 @@ export function isTrainingDay(k) {
   const o = db.state.trainingDays[k];
   if (o !== undefined) return o;
   return (db.state.workouts[k] || []).length > 0;
+}
+
+// その日の目標（トレ日・歩数連動を反映）
+export function dayTargets(k) {
+  return calcTargets(db.state.profile, { training: isTrainingDay(k), activity: db.state.activity?.[k] });
 }

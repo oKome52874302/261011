@@ -257,3 +257,13 @@ label.stack input { margin-top: 4px; color: var(--text); }
 .sets-input { padding: 6px 8px; font-size: 13px; }
 #importActions { margin: 10px 0; }
 label.stack textarea { display: block; }
+
+/* ---- 歩数 ---- */
+.activity-card { padding: 12px 16px; }
+.activity-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.activity-val { font-weight: 600; }
+.activity-form { margin-top: 10px; align-items: end; }
+.activity-form .btn { height: 36px; }
+.steps-list { padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--text); margin: 8px 0 12px; }
+.steps-list b { color: var(--accent); font-weight: 600; }
+.add-btn { white-space: nowrap; }

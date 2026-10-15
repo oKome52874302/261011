@@ -8,6 +8,13 @@ import {
   inviteUrl, inviteText, refreshGroupFoods, shareFood,
 } from './group.js';
 import { SUPABASE_URL } from './config.js';
+import { SHORTCUT_URL_TEMPLATE, SHORTCUT_TEXT_TEMPLATE } from './health.js';
+
+const copyText = async (text, label) => {
+  try { await navigator.clipboard.writeText(text); toast(`${label}をコピーしました`); } catch { prompt(label, text); }
+};
+$('#copyHealthUrl').onclick = () => copyText(SHORTCUT_URL_TEMPLATE, 'URL版ひな形');
+$('#copyHealthText').onclick = () => copyText(SHORTCUT_TEXT_TEMPLATE, 'コピー版ひな形');
 
 const pf = $('#profileForm');
 
@@ -18,6 +25,7 @@ export function renderSettings() {
   }
   pf.elements.manual.checked = !!p.manual;
   pf.elements.carbCycle.checked = !!p.carbCycle;
+  pf.elements.activityLink.checked = !!p.activityLink;
   $('#manualFields').classList.toggle('hidden', !p.manual);
   renderCalc();
 
@@ -31,7 +39,7 @@ export function renderSettings() {
 function renderCalc() {
   const p = db.state.profile;
   const t = calcTargets(p);
-  const rows = [['基礎代謝', `${t.bmr} kcal`], ['消費(TDEE)', `${t.tdee} kcal`], ['目標カロリー', `${t.kcal} kcal`], ['たんぱく質', `${t.p} g`], ['脂質', `${t.f} g`], ['炭水化物', `${t.c} g`]];
+  const rows = [['基礎代謝', `${t.bmr} kcal`], [t.linked ? '消費(活動除く)' : '消費(TDEE)', `${t.tdee} kcal`], ['目標カロリー', `${t.kcal} kcal`], ['たんぱく質', `${t.p} g`], ['脂質', `${t.f} g`], ['炭水化物', `${t.c} g`]];
   if (p.carbCycle) {
     const tr = calcTargets(p, { training: true });
     rows.push(['トレ日', `${tr.kcal} kcal（C ${tr.c} g）`], ['休養日', `${t.kcal} kcal（C ${t.c} g）`]);
@@ -55,7 +63,7 @@ pf.addEventListener('submit', (e) => {
   const fd = new FormData(pf);
   db.state.profile = {
     sex: fd.get('sex'), age: Number(fd.get('age')), height: Number(fd.get('height')), weight: Number(fd.get('weight')),
-    activity: Number(fd.get('activity')), goal: fd.get('goal'), manual: !!fd.get('manual'), carbCycle: !!fd.get('carbCycle'),
+    activity: Number(fd.get('activity')), goal: fd.get('goal'), manual: !!fd.get('manual'), carbCycle: !!fd.get('carbCycle'), activityLink: !!fd.get('activityLink'),
     mKcal: fd.get('mKcal'), mP: fd.get('mP'), mF: fd.get('mF'), mC: fd.get('mC'),
   };
   save();

@@ -1,8 +1,9 @@
 // 食事画面
-import { db, save, uid, shiftKey, isTrainingDay } from './store.js';
-import { calcTargets, sumEntries, round } from './calc.js';
+import { db, save, uid, shiftKey, isTrainingDay, dayTargets } from './store.js';
+import { sumEntries, round } from './calc.js';
 import { $, el, setBar, toast } from './dom.js';
 import { openAdd, saveTemplate } from './addFood.js';
+import { activityText, readHealthFromClipboard, saveActivity } from './health.js';
 
 export const MEALS = [
   { id: 'breakfast', label: '朝食' },
@@ -12,7 +13,7 @@ export const MEALS = [
 ];
 
 export function targetsFor(dateKey) {
-  return calcTargets(db.state.profile, { training: isTrainingDay(dateKey) });
+  return dayTargets(dateKey);
 }
 
 export function renderToday() {
@@ -49,6 +50,8 @@ export function renderToday() {
   $('#proteinHint').textContent = pLeft > 0
     ? `たんぱく質あと ${pLeft}g（鶏むね肉なら約${round(pLeft / 0.233)}g、プロテインなら約${Math.ceil(pLeft / 22.5)}杯）`
     : 'たんぱく質の目標を達成しました 💪';
+
+  renderActivity(t);
 
   const meals = $('#meals');
   meals.replaceChildren();
@@ -91,3 +94,40 @@ $('#copyPrev').onclick = () => {
   save();
   toast('前日の食事をコピーしました');
 };
+
+// ---------- 歩数・活動 ----------
+let editingActivity = false;
+function renderActivity(t) {
+  const a = db.state.activity?.[db.date];
+  const card = $('#activityCard');
+  const head = el('div', { class: 'activity-row' },
+    el('div', {},
+      el('div', { class: a ? 'activity-val' : 'muted' }, a ? activityText(a) : '👟 歩数・距離は未記録'),
+      t.linked && el('div', { class: 'muted small' }, a ? `活動消費 +${t.exercise}kcal を目標に反映中` : '歩数を取り込むと目標に活動分が加算されます')),
+    el('div', { class: 'meal-actions' },
+      el('button', { class: 'add-btn', onclick: importFromClipboard }, '📋 取り込む'),
+      el('button', { class: 'icon', 'aria-label': '手入力', onclick: () => { editingActivity = !editingActivity; renderActivity(t); } }, '✎')));
+  const children = [head];
+  if (editingActivity) {
+    const num = (name, ph, v) => el('label', {}, ph, el('input', { type: 'number', name, min: '0', step: 'any', inputmode: 'decimal', value: v == null ? '' : String(v) }));
+    const form = el('form', { class: 'grid4 compact activity-form' },
+      num('steps', '歩数', a?.steps), num('dist', '距離km', a?.distanceKm), num('kcal', '活動kcal', a?.activeKcal),
+      el('button', { class: 'btn small' }, '保存'));
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const v = (n) => (form.elements[n].value === '' ? null : Number(form.elements[n].value));
+      editingActivity = false;
+      saveActivity({ date: db.date, steps: v('steps'), distanceKm: v('dist'), activeKcal: v('kcal') }, 'manual');
+    };
+    children.push(form);
+  }
+  card.replaceChildren(...children.filter(Boolean));
+}
+
+async function importFromClipboard() {
+  const rec = await readHealthFromClipboard();
+  if (!rec) return toast('ヘルスケアのデータが見つかりませんでした（ショートカットでコピーしてから押してください）');
+  saveActivity(rec);
+  if (rec.date !== db.date) db.date = rec.date;
+  toast(`取り込みました：${activityText(db.state.activity[rec.date])}`);
+}

@@ -1,8 +1,8 @@
 // 実績・レベル・連続記録
 // 方針：体重の増減やカロリーの少なさではなく「行動」（記録・たんぱく質・トレ）を評価する。
 //       連続記録は週1回までの「おやすみ」を許容し、1日抜けただけでゼロにならないようにする。
-import { db, save, todayKey, shiftKey, fromKey, isTrainingDay } from './store.js';
-import { calcTargets, sumEntries, e1rm, round } from './calc.js';
+import { db, save, todayKey, shiftKey, fromKey, dayTargets } from './store.js';
+import { sumEntries, e1rm, round } from './calc.js';
 import { $, el, toast } from './dom.js';
 
 const FREEZE_INTERVAL = 7; // おやすみは7日に1回まで
@@ -17,7 +17,7 @@ export function computeStats() {
   const perfectDays = new Set();
   let aiUses = 0;
   for (const k of logDays) {
-    const t = calcTargets(s.profile, { training: isTrainingDay(k) });
+    const t = dayTargets(k);
     const tot = sumEntries(s.logs[k]);
     if (tot.p >= t.p) proteinDays.add(k);
     if (tot.p >= t.p && Math.abs(tot.kcal - t.kcal) <= t.kcal * 0.1 && tot.f <= t.f * 1.1) perfectDays.add(k);
@@ -71,6 +71,9 @@ export function computeStats() {
     if (wset.has(k)) week.workout++;
   }
 
+  const acts = Object.entries(s.activity || {}).filter(([k]) => k <= today).map(([, v]) => v);
+  const steps10kDays = acts.filter((v) => v.steps >= 10000).length;
+  const totalKm = acts.reduce((sum, v) => sum + (v.distanceKm || 0), 0);
   const weightDays = Object.keys(s.weights).length;
   const unlocked = Object.keys(s.achievements || {}).length;
   const xp = logDays.length * 10 + proteinDays.size * 10 + perfectDays.size * 5
@@ -78,7 +81,7 @@ export function computeStats() {
 
   return {
     logDays: logDays.length, proteinDays: proteinDays.size, perfectDays: perfectDays.size,
-    workoutDays: workoutDays.length, prs, weightDays, aiUses,
+    workoutDays: workoutDays.length, prs, weightDays, aiUses, steps10kDays, totalKm,
     barcode: s.customFoods.filter((f) => f.barcode).length,
     customFoods: s.customFoods.length, templates: s.templates.length,
     streak: current, bestStreak, freezeAvailable: sinceFreeze >= FREEZE_INTERVAL,
@@ -124,6 +127,10 @@ export const ACHIEVEMENTS = [
   A('weekWorkout3', '筋トレ', '📆', '週3トレーニー', '1週間で3日トレーニング', 3, (s) => s.week.workout),
   A('pr1', '筋トレ', '🎉', '自己ベスト更新', '推定1RMを更新', 1, (s) => s.prs),
   A('pr10', '筋トレ', '🚀', '成長期', '自己ベストを累計10回更新', 10, (s) => s.prs),
+
+  A('steps1', '歩数', '👟', '1万歩', '1日1万歩を達成', 1, (s) => s.steps10kDays),
+  A('steps10', '歩数', '🚶', 'よく歩く人', '1万歩の日が累計10日', 10, (s) => s.steps10kDays),
+  A('km100', '歩数', '🗾', '100km踏破', '歩いた距離が累計100km', 100, (s) => Math.floor(s.totalKm)),
 
   A('weight1', '体重', '⚖️', '現状把握', '体重を記録した', 1, (s) => s.weightDays),
   A('weight14', '体重', '📈', 'データ派', '体重を累計14日記録', 14, (s) => s.weightDays),

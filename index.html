@@ -49,7 +49,10 @@
         <p class="hint" id="proteinHint"></p>
       </div>
       <div id="meals"></div>
-      <button id="copyPrev" class="btn ghost full">前日の食事をコピー</button>
+      <div class="row two">
+        <button id="copyPrev" class="btn ghost">前日の食事をコピー</button>
+        <button class="btn line" data-action="share">📤 今週の結果を送る</button>
+      </div>
     </section>
 
     <!-- 筋トレ -->
@@ -241,6 +244,30 @@
       <p id="aiNote" class="hint"></p>
       <button id="aiAdd" class="btn full hidden">チェックした食品を追加</button>
     </div>
+  </dialog>
+
+  <!-- 週間レポート共有 -->
+  <dialog id="shareDialog">
+    <div class="dialog-head">
+      <h2>週間レポートを送る</h2>
+      <button class="icon" id="closeShare" aria-label="閉じる">✕</button>
+    </div>
+    <div class="seg" id="shareSeg">
+      <button data-week="this" class="active">今週</button>
+      <button data-week="last">先週</button>
+    </div>
+    <img id="sharePreview" class="share-preview" alt="週間レポート画像">
+    <button id="shareNative" class="btn line full">📤 画像を LINE などに送る</button>
+    <div class="row two share-sub">
+      <button id="shareLine" class="btn ghost">LINEでテキスト送信</button>
+      <button id="shareCopy" class="btn ghost">テキストをコピー</button>
+    </div>
+    <button id="shareSave" class="btn ghost full">画像を保存</button>
+    <details class="share-details">
+      <summary>送信されるテキスト</summary>
+      <pre id="shareText"></pre>
+    </details>
+    <p class="hint">「画像を送る」を押すと共有メニューが開くので LINE を選んでください。アプリのURLも入るので、友達もすぐ始められます。</p>
   </dialog>
 
   <!-- バーコード読み取り -->

@@ -57,6 +57,7 @@
 
     <!-- 筋トレ -->
     <section id="view-training" class="view">
+      <div class="card" id="routineCard"></div>
       <div class="card">
         <h2>種目を追加</h2>
         <form id="exerciseForm" class="row">
@@ -152,6 +153,10 @@
         <h2>計算結果</h2>
         <dl id="calcResult" class="calc"></dl>
         <p class="hint">基礎代謝はMifflin-St Jeor式で推定。減量はTDEE×0.8、増量はTDEE×1.1、たんぱく質は体重×（減量2.2／維持1.8／増量2.0）g、脂質は総カロリーの25%、残りを炭水化物に配分しています。あくまで目安なので、体重推移を見て調整してください。</p>
+      </div>
+      <div class="card" id="groupCard">
+        <h2>友達グループ（食品共有）</h2>
+        <div id="groupBody"></div>
       </div>
       <div class="card">
         <h2>食事写真AI（任意）</h2>
@@ -250,6 +255,46 @@
       <p id="aiNote" class="hint"></p>
       <button id="aiAdd" class="btn full hidden">チェックした食品を追加</button>
     </div>
+  </dialog>
+
+  <!-- メニュー編集 -->
+  <dialog id="routineDialog">
+    <div class="dialog-head">
+      <h2 id="routineTitle">メニューを作成</h2>
+      <button class="icon" id="routineClose" aria-label="閉じる">✕</button>
+    </div>
+    <form id="routineForm" class="form">
+      <label>メニュー名 <input name="name" placeholder="例: 胸の日" maxlength="30"></label>
+      <div class="routine-head muted small"><span>種目</span><span>セット × 回</span><span>重量</span></div>
+      <ul id="routineRows" class="routine-rows"></ul>
+      <button type="button" id="routineAddRow" class="btn ghost full">＋ 種目を追加</button>
+      <p class="hint">重量は空欄でもOK（自重や、その日に決める場合）。</p>
+      <button class="btn full">保存</button>
+      <button type="button" id="routineDelete" class="btn danger full hidden">このメニューを削除</button>
+    </form>
+  </dialog>
+
+  <!-- 紙のメモ読み込み -->
+  <dialog id="importDialog">
+    <div class="dialog-head">
+      <h2>トレーニングメモを読み込む</h2>
+      <button class="icon" id="importClose" aria-label="閉じる">✕</button>
+    </div>
+    <button id="importPhotoBtn" class="btn full">📷 メモの写真を選ぶ／撮る</button>
+    <input type="file" id="importPhoto" accept="image/*" hidden>
+    <p id="importAiHint" class="hint hidden">APIキーが設定されているので、手書きにも強いAIで読み取ります。</p>
+    <div id="importStatus" class="ai-status"></div>
+    <label class="stack">メモのテキスト（写真から読み取った内容／直接入力・貼り付けもOK）
+      <textarea id="importText" rows="6" placeholder="例）&#10;ベンチ 60kg×10×3&#10;スクワット 80kg 10/10/8&#10;懸垂 10回×3セット"></textarea>
+    </label>
+    <ul id="importPreview" class="list import-preview"></ul>
+    <div id="importActions" class="hidden">
+      <div class="row two">
+        <button id="importToDay" class="btn">この日の記録に追加</button>
+        <button id="importToRoutine" class="btn ghost">メニューとして保存</button>
+      </div>
+    </div>
+    <p class="hint">「60×10×3」「80kg 10/10/8」「10回×3セット」などの書き方に対応。手書きはスマホ内の読み取りだと精度が低いので、iPhoneのテキスト認識でコピーして貼り付けるのがおすすめです。</p>
   </dialog>
 
   <!-- 週間レポート共有 -->

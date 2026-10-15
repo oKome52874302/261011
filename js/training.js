@@ -2,8 +2,9 @@
 import { db, save, uid, shiftKey, fromKey } from './store.js';
 import { round, e1rm } from './calc.js';
 import { $, el, toast } from './dom.js';
+import { renderRoutineCard } from './routines.js';
 
-const PRESET_EXERCISES = [
+export const PRESET_EXERCISES = [
   'ベンチプレス', 'インクラインベンチプレス', 'ダンベルプレス', 'ダンベルフライ', 'チェストプレス', 'ディップス', '腕立て伏せ',
   'スクワット', 'レッグプレス', 'ブルガリアンスクワット', 'レッグエクステンション', 'レッグカール', 'ルーマニアンデッドリフト', 'カーフレイズ',
   'デッドリフト', '懸垂', 'ラットプルダウン', 'ベントオーバーロウ', 'シーテッドロウ', 'ワンハンドロウ',
@@ -12,7 +13,7 @@ const PRESET_EXERCISES = [
   'クランチ', 'レッグレイズ', 'プランク',
 ];
 
-function exerciseNames() {
+export function exerciseNames() {
   const used = new Set();
   for (const list of Object.values(db.state.workouts)) for (const w of list) used.add(w.exercise);
   return [...new Set([...used, ...PRESET_EXERCISES])];
@@ -42,6 +43,7 @@ function bestBefore(exercise, before) {
 }
 
 export function renderTraining() {
+  renderRoutineCard();
   $('#exerciseList').replaceChildren(...exerciseNames().map((n) => el('option', { value: n })));
   const list = db.state.workouts[db.date] || [];
   const box = $('#workoutList');
@@ -59,7 +61,9 @@ function renderExercise(w) {
   const best = bestOf(w.sets);
   const prevBest = bestBefore(w.exercise, db.date);
   const isPR = w.sets.length > 0 && best > prevBest && prevBest > 0;
-  const last = w.sets.at(-1) || prev?.sets.at(-1);
+  const plan = w.plan;
+  // 入力欄の初期値：この日の直前のセット → メニューの目標 → 前回の記録
+  const last = w.sets.at(-1) || (plan ? { w: plan.weight || prev?.sets.at(-1)?.w || '', r: plan.reps } : prev?.sets.at(-1));
 
   const form = el('form', { class: 'row set-form' },
     el('input', { type: 'number', name: 'w', step: 'any', min: '0', placeholder: 'kg', inputmode: 'decimal', value: last ? String(last.w) : '' }),
@@ -82,6 +86,8 @@ function renderExercise(w) {
     el('div', { class: 'ex-head' },
       el('div', {},
         el('div', { class: 'title' }, w.exercise, isPR && el('span', { class: 'tag pr' }, 'PR')),
+        plan && el('div', { class: `plan${w.sets.length >= plan.sets ? ' done' : ''}` },
+          `🎯 目標 ${plan.sets}セット×${plan.reps}回${plan.weight ? ` @${plan.weight}kg` : ''}　${w.sets.length >= plan.sets ? '✅ 完了' : `${w.sets.length}/${plan.sets}`}`),
         el('div', { class: 'muted small' }, prev ? `前回 ${prev.date.slice(5).replace('-', '/')}: ${setsText(prev.sets)}` : '初めての記録')),
       el('button', {
         class: 'icon', 'aria-label': '種目を削除', onclick: () => {

@@ -307,3 +307,18 @@ a.btn.full { display: block; }
 .recipe-total { background: var(--bg); border-radius: 10px; padding: 10px 12px; margin: 10px 0; font-size: 14px; line-height: 1.8; }
 .rc-per b { color: var(--accent); font-size: 16px; }
 .warn-text { color: var(--f); font-size: 12px; }
+
+/* ---- 運動 ---- */
+.sport-list li { gap: 8px; }
+.sport-total { margin: 6px 0 10px; font-weight: 600; }
+.sport-total .muted { display: block; font-weight: 400; }
+.sport-form { display: grid; gap: 8px; margin-top: 8px; }
+.sport-form select, .sm-row select { font-size: 13px; }
+.small-check { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+.small-check input { width: auto; }
+.sport-menus { margin: 4px 0 8px; flex-wrap: wrap; }
+.sport-menu-actions { margin-top: 10px; }
+.sm-rows { list-style: none; padding: 0; margin: 10px 0; }
+.sm-row { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.sm-row input, .sm-row select { margin: 0; padding: 8px; }
+.sport-line { font-size: 14px; margin-top: 2px; }

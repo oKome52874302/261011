@@ -11,7 +11,7 @@ export function renderRoutineCard() {
   const routines = db.state.routines || [];
   const today = (db.state.workouts[db.date] || []).filter((w) => w.sets.length || w.plan);
   card.replaceChildren(...[
-    el('h2', {}, 'メニュー'),
+    el('h2', {}, '筋トレメニュー'),
     routines.length
       ? el('ul', { class: 'list routine-list' }, routines.map((r) => el('li', {},
         el('div', { class: 'routine-info' },

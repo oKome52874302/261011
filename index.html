@@ -58,6 +58,7 @@
 
     <!-- 筋トレ -->
     <section id="view-training" class="view">
+      <div class="card" id="sportsCard"></div>
       <div class="card" id="routineCard"></div>
       <div class="card">
         <h2>種目を追加</h2>
@@ -148,7 +149,7 @@
           <label class="check"><input type="checkbox" name="carbCycle"> トレ日／休養日で目標を変える（カーボサイクル）</label>
           <p class="hint indent">トレ日は炭水化物を増やして＋10%、休養日は−10%。筋トレを記録した日は自動でトレ日になります。</p>
           <label class="check"><input type="checkbox" name="activityLink"> 歩数・活動カロリーを目標に反映する</label>
-          <p class="hint indent">オンにすると活動レベルは「ほぼ運動しない」で計算し、その日の実際の活動消費（ヘルスケアのアクティブエネルギー、なければ歩数からの概算）を上乗せします。歩数を取り込むまでは目標が低めになります。</p>
+          <p class="hint indent">オンにすると活動レベルは「ほぼ運動しない」で計算し、その日の実際の活動消費（ヘルスケアのアクティブエネルギー、なければ歩数からの概算）と、筋トレ画面で記録した部活・スポーツの消費を上乗せします。歩数を取り込むまでは目標が低めになります。</p>
           <label class="check"><input type="checkbox" name="manual" id="manualToggle"> 目標値を手動で設定する</label>
           <div id="manualFields" class="grid2 hidden">
             <label>kcal <input type="number" name="mKcal" min="0"></label>
@@ -342,6 +343,28 @@
       </div>
     </div>
     <p class="hint">「大さじ2」「1/2個」「1枚(300g)」などをgに換算して、食品データと照合します。調味料の量や、食品の当てはめが合っているか確認してください（「少々」「適量」は0として計算）。</p>
+  </dialog>
+
+  <!-- 部活メニュー編集 -->
+  <dialog id="sportMenuDialog">
+    <div class="dialog-head">
+      <h2 id="smTitle">部活メニューを作成</h2>
+      <button class="icon" id="smClose" aria-label="閉じる">✕</button>
+    </div>
+    <form id="smForm" class="form">
+      <label>メニュー名 <input id="smName" placeholder="例: バド部 火曜練習" maxlength="30"></label>
+      <label>競技（「試合」「練習」などをこの競技として計算） <select id="smBase"></select></label>
+      <details class="paste-box">
+        <summary>📋 メニュー表を貼り付けて読み込む</summary>
+        <textarea id="smText" rows="5" placeholder="例）&#10;アップ 15分&#10;フットワーク 30分&#10;ノック 15分×2&#10;ゲーム練習 1時間"></textarea>
+        <button type="button" id="smParse" class="btn ghost full">読み込む</button>
+      </details>
+      <ul id="smRows" class="sm-rows"></ul>
+      <button type="button" id="smAddRow" class="btn ghost full">＋ 項目を追加</button>
+      <p class="hint">「動いた割合」は、待ち時間や休憩が多い場合に下げてください（例：サークルのゲームで順番待ちが多い → 6割）。</p>
+      <button class="btn full">保存</button>
+      <button type="button" id="smDelete" class="btn danger full hidden">このメニューを削除</button>
+    </form>
   </dialog>
 
   <!-- メニュー編集 -->

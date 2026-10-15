@@ -6,12 +6,22 @@ export const stepsKcal = (steps, weight) => (steps || 0) * weight * 0.0005;
 // 基礎代謝(Mifflin-St Jeor) → TDEE → 目的別の目標 kcal / PFC
 // activity: その日の { steps, distanceKm, activeKcal }。pr.activityLink が有効なら、
 // 活動レベルを「ほぼ運動しない(1.2)」にして、実際の活動消費を上乗せする（二重計上を防ぐ）
-export function calcTargets(pr, { training = false, activity = null } = {}) {
+// 運動の消費カロリー（METs × 体重kg × 時間h × 1.05）
+// net は安静時(1MET)を差し引いた分。基礎の消費（BMR×1.2）と二重に数えないよう、目標にはこちらを足す
+export function sessionKcal(s, weight) {
+  // 部活メニュー（複数の項目をまとめた記録）は項目ごとの合計
+  if (s.items) {
+    return s.items.reduce((t, it) => { const k = sessionKcal(it, weight); return { gross: t.gross + k.gross, net: t.net + k.net }; }, { gross: 0, net: 0 });
+  }
+  const h = ((s.minutes || 0) / 60) * ((s.ratio ?? 100) / 100);
+  return { gross: s.mets * weight * h * 1.05, net: Math.max(0, s.mets - 1) * weight * h * 1.05 };
+}
+
+export function calcTargets(pr, { training = false, activity = null, sportsNet = 0 } = {}) {
   const bmr = 10 * pr.weight + 6.25 * pr.height - 5 * pr.age + (pr.sex === 'male' ? 5 : -161);
   const linked = !!pr.activityLink;
-  const exercise = linked && activity
-    ? (activity.activeKcal > 0 ? activity.activeKcal : stepsKcal(activity.steps, pr.weight))
-    : 0;
+  const daily = activity ? (activity.activeKcal > 0 ? activity.activeKcal : stepsKcal(activity.steps, pr.weight)) : 0;
+  const exercise = linked ? daily + sportsNet : 0;
   const tdee = bmr * (linked ? 1.2 : Number(pr.activity)) + exercise;
   const factor = { cut: 0.8, maintain: 1.0, bulk: 1.1 }[pr.goal] ?? 1;
   const proteinPerKg = { cut: 2.2, maintain: 1.8, bulk: 2.0 }[pr.goal] ?? 1.8;
@@ -33,7 +43,7 @@ export function calcTargets(pr, { training = false, activity = null } = {}) {
     c += cycle;
     kcal += cycle * 4;
   }
-  return { bmr: round(bmr), tdee: round(tdee), kcal: round(kcal), p: round(p), f: round(f), c: round(c), cycle: round(cycle), exercise: round(exercise), linked };
+  return { bmr: round(bmr), tdee: round(tdee), kcal: round(kcal), p: round(p), f: round(f), c: round(c), cycle: round(cycle), exercise: round(exercise), sports: round(linked ? sportsNet : 0), linked };
 }
 
 export function sumEntries(entries) {

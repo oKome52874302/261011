@@ -3,6 +3,7 @@ import { db, save, uid, shiftKey, fromKey } from './store.js';
 import { round, e1rm } from './calc.js';
 import { $, el, toast } from './dom.js';
 import { renderRoutineCard } from './routines.js';
+import { renderSportsCard } from './sports.js';
 
 export const PRESET_EXERCISES = [
   'ベンチプレス', 'インクラインベンチプレス', 'ダンベルプレス', 'ダンベルフライ', 'チェストプレス', 'ディップス', '腕立て伏せ',
@@ -43,6 +44,7 @@ function bestBefore(exercise, before) {
 }
 
 export function renderTraining() {
+  renderSportsCard();
   renderRoutineCard();
   $('#exerciseList').replaceChildren(...exerciseNames().map((n) => el('option', { value: n })));
   const list = db.state.workouts[db.date] || [];

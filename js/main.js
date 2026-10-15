@@ -6,6 +6,8 @@ import { renderWeight } from './weight.js';
 import { renderSettings } from './settings.js';
 import { renderAchievements, checkAchievements, statusChipText } from './achievements.js';
 import { openShare } from './share.js';
+import { readInviteFromUrl, joinGroup, groupCode } from './group.js';
+import { toast } from './dom.js';
 
 const GOAL_LABEL = { cut: '減量中', maintain: '維持', bulk: '増量中' };
 const VIEWS = { today: renderToday, training: renderTraining, weight: renderWeight, achievements: renderAchievements, settings: renderSettings };
@@ -46,5 +48,16 @@ document.addEventListener('visibilitychange', () => {
 
 onChange(render);
 onChange(checkAchievements);
-show(db.isFirstRun ? 'settings' : 'today');
+// 招待リンクから開かれたらグループに参加
+const invite = readInviteFromUrl();
+history.replaceState(null, '', location.pathname);
+let startView = db.isFirstRun ? 'settings' : 'today';
+if (invite && invite.code !== groupCode()) {
+  if (confirm(`友達の食品共有グループ（${invite.code}）に参加しますか？`)) {
+    joinGroup(invite.code, invite.server);
+    toast('グループに参加しました');
+    startView = 'settings';
+  }
+}
+show(startView);
 if (!db.isFirstRun) checkAchievements();

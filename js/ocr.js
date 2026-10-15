@@ -44,11 +44,17 @@ const STATUS_JA = {
   'recognizing text': '文字を読み取り中',
 };
 
-export async function recognizeLabel(file, onProgress = () => {}) {
+// 画像から文字を読み取る（成分表示・トレーニングメモ共通）
+export async function recognizeText(file, onProgress = () => {}) {
   progressCb = (m) => onProgress(`${STATUS_JA[m.status] || '処理中'}… ${Math.round((m.progress || 0) * 100)}%`);
   const [worker, canvas] = await Promise.all([getWorker(), preprocess(file)]);
   const { data } = await worker.recognize(canvas);
-  return { text: data.text, ...parseNutritionText(data.text) };
+  return data.text;
+}
+
+export async function recognizeLabel(file, onProgress = () => {}) {
+  const text = await recognizeText(file, onProgress);
+  return { text, ...parseNutritionText(text) };
 }
 
 // ---------- テキスト解析 ----------

@@ -7,6 +7,7 @@ import { analyzeMealPhoto, readNutritionLabel } from './ai.js';
 import { recognizeLabel, parseNutritionText } from './ocr.js';
 import { getApiKey } from './store.js';
 import { scanBarcode, lookupBarcode } from './barcode.js';
+import { inGroup, cachedGroupFoods, refreshGroupFoods, findShared, shareFoodQuietly } from './group.js';
 
 const dialog = $('#addDialog');
 let activeMeal = null;
@@ -15,7 +16,12 @@ let category = 'すべて';
 let pendingBarcode = null; // 手入力で保存するマイ食品に紐づけるバーコード
 let manualUnit = null;     // 成分表示から読んだ基準量
 
-const allFoods = () => [...db.state.customFoods, ...BUILTIN_FOODS];
+// マイ食品 → グループの共有食品（自分が持っていないもの）→ 内蔵食品
+function allFoods() {
+  const mine = new Set(db.state.customFoods.map((f) => f.barcode).filter(Boolean));
+  const group = cachedGroupFoods().filter((f) => !mine.has(f.barcode));
+  return [...db.state.customFoods, ...group, ...BUILTIN_FOODS];
+}
 
 export function addEntries(mealId, entries) {
   (db.state.logs[db.date] ||= []).push(...entries.map((e) => ({ ...e, id: uid(), meal: mealId })));
@@ -36,8 +42,11 @@ export function openAdd(meal) {
   $('#foodSearch').value = '';
   $('#amountPanel').classList.add('hidden');
   resetManual();
+  renderChips();
   setMode('search');
   dialog.showModal();
+  // グループの共有食品を裏で最新化
+  if (inGroup()) refreshGroupFoods().then(() => { renderChips(); if (!$('#modeSearch').classList.contains('hidden')) renderFoodList(); }).catch(() => {});
 }
 
 $('#closeAdd').onclick = () => dialog.close();
@@ -57,7 +66,9 @@ $$('#addSeg button').forEach((b) => (b.onclick = () => setMode(b.dataset.mode)))
 // ---------- 検索 ----------
 function renderChips() {
   const box = $('#categoryChips');
-  box.replaceChildren(...['すべて', 'マイ食品', ...CATEGORIES].map((c) =>
+  const cats = ['すべて', 'マイ食品', ...(inGroup() ? ['みんなの食品'] : []), ...CATEGORIES];
+  if (!cats.includes(category)) category = 'すべて';
+  box.replaceChildren(...cats.map((c) =>
     el('button', { class: `chip${c === category ? ' active' : ''}`, onclick: () => { category = c; renderChips(); renderFoodList(); } }, c)));
 }
 
@@ -65,6 +76,7 @@ function renderFoodList() {
   const q = normalize($('#foodSearch').value.trim());
   let list = allFoods();
   if (category === 'マイ食品') list = list.filter((f) => f.custom);
+  else if (category === 'みんなの食品') list = list.filter((f) => f.shared);
   else if (category !== 'すべて') list = list.filter((f) => f.category === category);
   if (q) {
     list = list.filter((f) => normalize(f.name).includes(q) || (f.yomi && normalize(f.yomi).includes(q)));
@@ -79,7 +91,7 @@ function renderFoodList() {
     return;
   }
   for (const f of list.slice(0, 80)) {
-    const tag = f.custom ? 'マイ' : (!q && db.state.recent.includes(f.id) ? '最近' : null);
+    const tag = f.custom ? 'マイ' : f.shared ? `みんな${f.addedBy ? `・${f.addedBy}` : ''}` : (!q && db.state.recent.includes(f.id) ? '最近' : null);
     const basis = f.basis === 'serving' ? `${f.unit?.label || '1食'}` : '100g';
     const li = el('li', { onclick: () => selectFood(f) },
       el('span', { class: 'food-name' }, f.name, tag && el('span', { class: 'tag' }, tag)),
@@ -207,12 +219,14 @@ $('#modeManual').addEventListener('submit', (e) => {
   const name = String(fd.get('name')).trim();
   if (fd.get('save')) {
     const id = `custom-${uid()}`;
-    db.state.customFoods.unshift({
+    const food = {
       id, name, custom: true, basis: 'serving', ...base,
       unit: manualUnit || { label: '1食' },
       ...(pendingBarcode ? { barcode: pendingBarcode } : {}),
-    });
+    };
+    db.state.customFoods.unshift(food);
     touchRecent(id);
+    if (food.barcode) shareFoodQuietly(food, () => toast('グループに共有しました'));
   }
   const unitLabel = manualUnit?.label || '';
   addEntries(activeMeal.id, [{ name, amountLabel: qty === 1 ? '' : `${qty}×${unitLabel || '食分'}`, ...scale(base, qty) }]);
@@ -375,6 +389,11 @@ $('#barcodeBtn').onclick = async () => {
   if (mine) return selectFood(mine);
 
   aiBusy(`商品を検索しています…（${code}）`);
+  const shared = await findShared(code);
+  if (shared) {
+    toast(`グループで登録済みの商品です${shared.addedBy ? `（${shared.addedBy}さん）` : ''}`);
+    return selectFood(shared);
+  }
   let info = null;
   try {
     info = await lookupBarcode(code);
@@ -390,9 +409,10 @@ $('#barcodeBtn').onclick = async () => {
     db.state.customFoods = [food, ...db.state.customFoods.filter((f) => f.id !== food.id)];
     save();
     toast('商品が見つかりました（マイ食品に保存）');
+    shareFoodQuietly(food);
     selectFood(food);
   } else {
-    resetManual(`バーコード ${code} の商品はデータベースにありませんでした。「🏷 成分表示を撮影」で読み取るか、手入力してください。保存すると次回からこのバーコードで呼び出せます。`);
+    resetManual(`バーコード ${code} の商品はデータベースにありませんでした。「🏷 成分表示を撮影」で読み取るか、手入力してください。保存すると次回からこのバーコードで呼び出せます${inGroup() ? '（グループの友達にも共有されます）' : ''}。`);
     pendingBarcode = code;
     setMode('manual');
   }

@@ -225,5 +225,35 @@ a { color: var(--accent); }
 .need-key { position: absolute; top: -7px; right: -4px; font-size: 9px; background: var(--line); color: var(--muted); border-radius: 99px; padding: 1px 6px; }
 .paste-box { margin: 0 0 12px; font-size: 13px; }
 .paste-box summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
-.paste-box textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; color: var(--text); font: inherit; margin-top: 6px; resize: vertical; }
+.paste-box textarea, label.stack textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; color: var(--text); font: inherit; margin-top: 6px; resize: vertical; }
 #labelAiRetry { margin-bottom: 12px; font-size: 13px; }
+
+/* ---- グループ ---- */
+.group-code { display: flex; flex-direction: column; background: var(--bg); border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; }
+.group-code b { font-size: 22px; letter-spacing: .08em; font-family: ui-monospace, Menlo, monospace; }
+.invite-row, .join-row { margin: 10px 0; }
+label.stack { display: block; font-size: 13px; color: var(--muted); margin: 10px 0; }
+label.stack input { margin-top: 4px; color: var(--text); }
+.server-box { margin-top: 12px; font-size: 13px; }
+.server-box summary { color: var(--muted); cursor: pointer; padding: 4px 0; }
+.server-box .form { margin-top: 8px; }
+
+/* ---- メニュー・メモ読み込み ---- */
+.routine-list li { gap: 8px; }
+.routine-info { min-width: 0; }
+.routine-info .title { font-weight: 600; }
+.routine-info .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#routineCard .row.two { margin-top: 10px; }
+.routine-head { display: grid; grid-template-columns: 1fr 112px 56px 28px; gap: 6px; margin: 4px 0; }
+.routine-rows { list-style: none; margin: 0 0 10px; padding: 0; }
+.routine-row { display: grid; grid-template-columns: 1fr 44px 10px 44px 56px 28px; gap: 6px; align-items: center; margin-bottom: 6px; }
+.routine-row input { padding: 8px 6px; margin: 0; }
+.plan { font-size: 13px; color: var(--f); margin: 2px 0; }
+.plan.done { color: var(--accent); }
+.import-preview { max-height: 36vh; overflow-y: auto; }
+.import-preview li.import-item { display: block; }
+.import-item label.check { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.import-item label.check input[type=checkbox] { width: auto; }
+.sets-input { padding: 6px 8px; font-size: 13px; }
+#importActions { margin: 10px 0; }
+label.stack textarea { display: block; }

@@ -53,6 +53,37 @@ const LABEL_SCHEMA = {
   additionalProperties: false,
 };
 
+const WORKOUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    exercises: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          exercise: { type: 'string', description: '種目名（日本語の一般的な名称。略称は正式名に）' },
+          sets: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                w: { type: 'number', description: '重量(kg)。自重は0、lbはkgに換算' },
+                r: { type: 'number', description: '回数' },
+              },
+              required: ['w', 'r'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['exercise', 'sets'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['exercises'],
+  additionalProperties: false,
+};
+
 const SYSTEM = `あなたは日本の管理栄養士です。筋トレ・ダイエット中のユーザーの食事記録を手伝います。
 数値は日本食品標準成分表や一般的な市販品の表示を基準に、現実的な値で答えてください。`;
 
@@ -122,4 +153,12 @@ export async function readNutritionLabel(file) {
     `この写真の「栄養成分表示」を読み取ってください。表示されている基準量（1食・1本・100gあたり等）の値をそのまま返してください。
 商品名がパッケージに見えれば name に入れてください。表示が読めない場合は found を false にしてください。`,
     LABEL_SCHEMA);
+}
+
+export async function readWorkoutPhoto(file) {
+  return askWithImage(file,
+    `この写真は筋トレの記録メモ（手書きの場合あり）です。種目ごとに、各セットの重量(kg)と回数を読み取ってください。
+「60×10×3」は60kgを10回×3セット、「80kg 10/10/8」は80kgで10回・10回・8回の意味です。
+メニューの予定だけで実績が書かれていない場合も、書かれている重量・回数・セット数をそのままセットとして返してください。`,
+    WORKOUT_SCHEMA);
 }

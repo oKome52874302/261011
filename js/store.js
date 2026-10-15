@@ -15,6 +15,8 @@ export function defaultState() {
     ai: { model: 'claude-opus-5-5' },
     achievements: {}, // { 実績ID: 解除日 }
     level: 1,
+    routines: [],     // トレーニングメニュー { id, name, items: [{ exercise, sets, reps, weight }] }
+    group: {},        // 友達グループ { code, nickname, url?, key? }
   };
 }
 

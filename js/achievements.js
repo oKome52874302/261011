@@ -189,7 +189,8 @@ export function renderAchievements() {
     ...goals.map(([label, v, goal]) => el('div', { class: 'weekly-row' },
       el('div', { class: 'weekly-label' }, el('span', {}, label), el('span', { class: v >= goal ? 'done' : 'muted' }, v >= goal ? '✅ 達成' : `${v} / ${goal}日`)),
       el('div', { class: 'bar' }, el('div', { class: 'bar-fill xp-fill', style: `width:${Math.min(100, (v / goal) * 100)}%` })))),
-    el('p', { class: 'hint' }, '毎週月曜にリセットされます。'));
+    el('p', { class: 'hint' }, '毎週月曜にリセットされます。'),
+    el('button', { class: 'btn line full', 'data-action': 'share' }, '📤 今週の結果を LINE で送る'));
 
   const box = $('#achievementList');
   box.replaceChildren();

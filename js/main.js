@@ -5,6 +5,7 @@ import { renderTraining } from './training.js';
 import { renderWeight } from './weight.js';
 import { renderSettings } from './settings.js';
 import { renderAchievements, checkAchievements, statusChipText } from './achievements.js';
+import { openShare } from './share.js';
 
 const GOAL_LABEL = { cut: '減量中', maintain: '維持', bulk: '増量中' };
 const VIEWS = { today: renderToday, training: renderTraining, weight: renderWeight, achievements: renderAchievements, settings: renderSettings };
@@ -29,6 +30,8 @@ function show(name) {
 
 $$('.tabbar button').forEach((b) => (b.onclick = () => show(b.dataset.view)));
 $('#statusChip').onclick = () => show('achievements');
+// 「結果を送る」ボタン（複数の画面にある）
+document.addEventListener('click', (e) => { if (e.target.closest('[data-action=share]')) openShare(); });
 $('#prevDay').onclick = () => { db.date = shiftKey(db.date, -1); render(); };
 $('#nextDay').onclick = () => { db.date = shiftKey(db.date, 1); render(); };
 $('#dateLabel').onclick = () => { db.date = todayKey(); render(); };

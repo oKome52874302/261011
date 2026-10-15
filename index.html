@@ -49,7 +49,10 @@
         <p class="hint" id="proteinHint"></p>
       </div>
       <div id="meals"></div>
-      <button id="copyPrev" class="btn ghost full">前日の食事をコピー</button>
+      <div class="row two">
+        <button id="copyPrev" class="btn ghost">前日の食事をコピー</button>
+        <button class="btn line" data-action="share">📤 今週の結果を送る</button>
+      </div>
     </section>
 
     <!-- 筋トレ -->
@@ -151,7 +154,7 @@
         <p class="hint">基礎代謝はMifflin-St Jeor式で推定。減量はTDEE×0.8、増量はTDEE×1.1、たんぱく質は体重×（減量2.2／維持1.8／増量2.0）g、脂質は総カロリーの25%、残りを炭水化物に配分しています。あくまで目安なので、体重推移を見て調整してください。</p>
       </div>
       <div class="card">
-        <h2>写真AI（任意）</h2>
+        <h2>食事写真AI（任意）</h2>
         <form id="aiForm" class="form">
           <label>Claude APIキー
             <input type="password" name="apiKey" placeholder="sk-ant-..." autocomplete="off">
@@ -159,7 +162,7 @@
           <label>モデル <select name="model" id="aiModel"></select></label>
           <button class="btn full">保存</button>
         </form>
-        <p class="hint">食事写真の推定・栄養成分表示の読み取りに使います。APIキーは <a href="https://console.anthropic.com/" target="_blank" rel="noopener">Anthropic Console</a> で発行でき、利用量に応じて課金されます（目安：1枚あたり数円）。キーはこの端末にだけ保存され、書き出しデータにも含まれません。他人とキーを共有せず、Console で利用上限を設定しておくのがおすすめです。</p>
+        <p class="hint">食事写真から料理と量を推定する機能に使います（成分表示の撮影・バーコードはキー不要で、スマホ内で処理します）。APIキーは <a href="https://console.anthropic.com/" target="_blank" rel="noopener">Anthropic Console</a> で発行でき、利用量に応じて課金されます（目安：1枚あたり数円）。キーはこの端末にだけ保存され、書き出しデータにも含まれません。他人とキーを共有せず、Console で利用上限を設定しておくのがおすすめです。</p>
       </div>
       <div class="card">
         <h2>データ</h2>
@@ -189,9 +192,9 @@
       <button class="icon" id="closeAdd" aria-label="閉じる">✕</button>
     </div>
     <div class="quick-actions">
-      <button id="aiMealBtn">📷<span>写真でAI推定</span></button>
       <button id="aiLabelBtn">🏷<span>成分表示を撮影</span></button>
       <button id="barcodeBtn">▥<span>バーコード</span></button>
+      <button id="aiMealBtn">📷<span>食事写真AI</span><small id="aiMealNeedKey" class="need-key">要APIキー</small></button>
     </div>
     <input type="file" id="photoInput" accept="image/*" hidden>
     <div class="seg" id="addSeg">
@@ -222,6 +225,12 @@
 
     <form id="modeManual" class="mode form hidden">
       <p id="manualNote" class="note hidden"></p>
+      <button type="button" id="labelAiRetry" class="btn ghost full hidden">うまく読めない場合：AIで読み取る（APIキー使用）</button>
+      <details id="pasteBox" class="paste-box">
+        <summary>📋 成分表示のテキストを貼り付けて自動入力</summary>
+        <textarea id="pasteText" rows="5" placeholder="例）エネルギー 198kcal たんぱく質 15.2g 脂質 8.1g 炭水化物 17.3g"></textarea>
+        <p class="hint">iPhoneならカメラやアルバムで成分表示を写し、右下の「テキスト認識」ボタン→「すべてをコピー」で貼り付けられます。読み取った文字を直すと数値も更新されます。</p>
+      </details>
       <label>食品名 <input name="name" required placeholder="例: コンビニ弁当"></label>
       <div class="grid4">
         <label>kcal <input name="kcal" type="number" step="any" min="0" required inputmode="decimal"></label>
@@ -241,6 +250,30 @@
       <p id="aiNote" class="hint"></p>
       <button id="aiAdd" class="btn full hidden">チェックした食品を追加</button>
     </div>
+  </dialog>
+
+  <!-- 週間レポート共有 -->
+  <dialog id="shareDialog">
+    <div class="dialog-head">
+      <h2>週間レポートを送る</h2>
+      <button class="icon" id="closeShare" aria-label="閉じる">✕</button>
+    </div>
+    <div class="seg" id="shareSeg">
+      <button data-week="this" class="active">今週</button>
+      <button data-week="last">先週</button>
+    </div>
+    <img id="sharePreview" class="share-preview" alt="週間レポート画像">
+    <button id="shareNative" class="btn line full">📤 画像を LINE などに送る</button>
+    <div class="row two share-sub">
+      <button id="shareLine" class="btn ghost">LINEでテキスト送信</button>
+      <button id="shareCopy" class="btn ghost">テキストをコピー</button>
+    </div>
+    <button id="shareSave" class="btn ghost full">画像を保存</button>
+    <details class="share-details">
+      <summary>送信されるテキスト</summary>
+      <pre id="shareText"></pre>
+    </details>
+    <p class="hint">「画像を送る」を押すと共有メニューが開くので LINE を選んでください。アプリのURLも入るので、友達もすぐ始められます。</p>
   </dialog>
 
   <!-- バーコード読み取り -->

@@ -6,6 +6,8 @@ import { $, $$, el, toast, normalize } from './dom.js';
 import { analyzeMealPhoto, readNutritionLabel } from './ai.js';
 import { recognizeLabel, parseNutritionText } from './ocr.js';
 import { getApiKey } from './store.js';
+import { portionOptions, portionLabel } from './portions.js';
+import { openRecipe } from './recipe.js';
 import { scanBarcode, lookupBarcode } from './barcode.js';
 import { inGroup, cachedGroupFoods, refreshGroupFoods, findShared, shareFoodQuietly } from './group.js';
 
@@ -15,6 +17,9 @@ let selectedFood = null;
 let category = 'すべて';
 let pendingBarcode = null; // 手入力で保存するマイ食品に紐づけるバーコード
 let manualUnit = null;     // 成分表示から読んだ基準量
+let photoSession = false;  // 食事写真を見ながら目分量で記録中
+let photoCount = 0;
+let photoUrl = null;
 
 // マイ食品 → グループの共有食品（自分が持っていないもの）→ 内蔵食品
 function allFoods() {
@@ -38,7 +43,6 @@ export function openAdd(meal) {
   pendingBarcode = null;
   manualUnit = null;
   $('#addTitle').textContent = `${meal.label}に追加`;
-  $('#aiMealNeedKey').classList.toggle('hidden', !!getApiKey());
   $('#foodSearch').value = '';
   $('#amountPanel').classList.add('hidden');
   resetManual();
@@ -50,6 +54,26 @@ export function openAdd(meal) {
 }
 
 $('#closeAdd').onclick = () => dialog.close();
+dialog.addEventListener('close', endPhotoSession);
+
+// ---------- 写真を見ながら目分量で記録 ----------
+function startPhotoSession(file) {
+  endPhotoSession();
+  photoUrl = URL.createObjectURL(file);
+  photoSession = true;
+  photoCount = 0;
+  $('#refPhotoImg').src = photoUrl;
+  $('#refPhoto').classList.remove('hidden', 'big');
+  setMode('search');
+  toast('写真を見ながら、食品と量（✋手のひら・✊こぶし など）を選んでください');
+}
+function endPhotoSession() {
+  photoSession = false;
+  $('#refPhoto').classList.add('hidden');
+  if (photoUrl) { URL.revokeObjectURL(photoUrl); photoUrl = null; }
+}
+$('#refPhotoImg').onclick = () => $('#refPhoto').classList.toggle('big');
+$('#refPhotoClose').onclick = endPhotoSession;
 dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
 
 function setMode(mode) {
@@ -125,6 +149,14 @@ function selectFood(food) {
   const hasUnit = food.unit && !(food.basis === '100g' && food.unit.g === 100);
   if (hasUnit) unit.append(el('option', { value: 'unit' }, `× ${food.unit.label}${food.unit.g ? `（${food.unit.g}g）` : ''}`));
   if (food.basis === '100g' || food.unit?.g) unit.append(el('option', { value: 'g' }, 'g'));
+  // 手ばかり（目分量）。写真を見ながら記録しているときは最初に選んでおく
+  const portions = portionOptions(food);
+  if (portions.length) {
+    const group = el('optgroup', { label: '目分量（手ばかり）' }, portions.map((o) => el('option', { value: `p:${o.key}` }, o.label)));
+    unit.append(group);
+    const primary = portions.filter((o) => !o.secondary);
+    if (photoSession && primary.length) unit.value = `p:${primary[primary.length > 1 && primary[0].key.startsWith('rice') ? 1 : 0].key}`;
+  }
   $('#amountValue').value = unit.value === 'g' ? 100 : 1;
   $('#amountPanel').classList.remove('hidden');
   updatePreview();
@@ -135,6 +167,10 @@ function currentSelection() {
   const v = Number($('#amountValue').value) || 0;
   const u = $('#amountUnit').value;
   const f = selectedFood;
+  if (u.startsWith('p:')) {
+    const opt = portionOptions(f).find((o) => `p:${o.key}` === u);
+    return { nut: nutrientsFor(f, v * opt.g, 'g'), label: `${portionLabel(opt, v)}・約${Math.round(v * opt.g)}g` };
+  }
   const label = u === 'g' ? `${v}g` : `${v === 1 ? '' : `${v}×`}${f.unit.label}`;
   return { nut: nutrientsFor(f, v, u), label };
 }
@@ -156,6 +192,17 @@ $('#addSelected').onclick = () => {
   if (!(Number($('#amountValue').value) > 0)) return toast('量を入力してください');
   touchRecent(selectedFood.id);
   addEntries(activeMeal.id, [{ name: selectedFood.name, amountLabel: label, ...nut }]);
+  if (photoSession) {
+    // 写真を見ながら続けて追加できるように閉じない
+    photoCount++;
+    toast(`${selectedFood.name} を追加（${photoCount}品目）。続けて選べます`);
+    selectedFood = null;
+    $('#amountPanel').classList.add('hidden');
+    $('#foodSearch').value = '';
+    renderFoodList();
+    $('#foodSearch').focus();
+    return;
+  }
   toast(`${selectedFood.name} を追加しました`);
   dialog.close();
 };
@@ -236,17 +283,9 @@ $('#modeManual').addEventListener('submit', (e) => {
 
 // ---------- 写真AI ----------
 let photoMode = 'meal';
-$('#aiMealBtn').onclick = () => {
-  if (!getApiKey()) {
-    setMode('ai');
-    $('#aiStatus').textContent = '食事写真から料理と量を推定するには、設定画面で Claude のAPIキーを登録してください。';
-    $('#aiNote').textContent = '料理の判別と量の推定は、スマホ内だけで処理すると精度が大きく落ちるため、AI（APIキー）が必要です。キーなしでも「🏷 成分表示を撮影」「▥ バーコード」「セット」は使えます。';
-    return;
-  }
-  photoMode = 'meal';
-  pickPhoto();
-};
+$('#aiMealBtn').onclick = () => { photoMode = 'meal'; pickPhoto(); };
 $('#aiLabelBtn').onclick = () => { photoMode = 'label'; pickPhoto(); };
+$('#recipeBtn').onclick = () => openRecipe(activeMeal, addEntries, () => dialog.close());
 
 function pickPhoto() {
   const input = $('#photoInput');
@@ -266,6 +305,18 @@ $('#photoInput').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   if (photoMode === 'label') return handleLabel(file);
+  if (!getApiKey()) return startPhotoSession(file);
+  // APIキーがある場合は「AIで推定」と「目分量で記録」を選べる
+  setMode('ai');
+  $('#aiStatus').replaceChildren('この写真をどう記録しますか？');
+  $('#aiItems').replaceChildren(el('li', { class: 'choice-row' },
+    el('button', { class: 'btn', onclick: () => runMealAi(file) }, '🤖 AIで推定'),
+    el('button', { class: 'btn ghost', onclick: () => startPhotoSession(file) }, '✋ 目分量で記録')));
+  $('#aiNote').textContent = '';
+  $('#aiAdd').classList.add('hidden');
+});
+
+async function runMealAi(file) {
   aiBusy('AIが写真を解析しています…（10〜30秒）');
   try {
     const out = await analyzeMealPhoto(file);
@@ -273,7 +324,7 @@ $('#photoInput').addEventListener('change', async (e) => {
   } catch (err) {
     $('#aiStatus').textContent = `⚠️ ${err.message}`;
   }
-});
+}
 
 function showMealResult(out) {
   if (!out.items.length) {

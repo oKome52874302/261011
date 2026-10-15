@@ -40,6 +40,7 @@ const pf = $('#profileForm');
 
 export function renderSettings() {
   const p = db.state.profile;
+  pf.elements.handScale.value = String(p.handScale || 1);
   for (const k of ['sex', 'age', 'height', 'weight', 'activity', 'goal', 'mKcal', 'mP', 'mF', 'mC']) {
     if (p[k] !== undefined) pf.elements[k].value = p[k];
   }
@@ -84,7 +85,7 @@ pf.addEventListener('submit', (e) => {
   const fd = new FormData(pf);
   db.state.profile = {
     sex: fd.get('sex'), age: Number(fd.get('age')), height: Number(fd.get('height')), weight: Number(fd.get('weight')),
-    activity: Number(fd.get('activity')), goal: fd.get('goal'), manual: !!fd.get('manual'), carbCycle: !!fd.get('carbCycle'), activityLink: !!fd.get('activityLink'),
+    activity: Number(fd.get('activity')), goal: fd.get('goal'), manual: !!fd.get('manual'), carbCycle: !!fd.get('carbCycle'), activityLink: !!fd.get('activityLink'), handScale: Number(fd.get('handScale')) || 1,
     mKcal: fd.get('mKcal'), mP: fd.get('mP'), mF: fd.get('mF'), mC: fd.get('mC'),
   };
   save();

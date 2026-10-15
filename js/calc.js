@@ -1,9 +1,18 @@
 export const round = (n, d = 0) => Math.round(n * 10 ** d) / 10 ** d;
 
+// 歩数からの消費カロリー概算（体重70kgで1万歩 ≒ 350kcal）
+export const stepsKcal = (steps, weight) => (steps || 0) * weight * 0.0005;
+
 // 基礎代謝(Mifflin-St Jeor) → TDEE → 目的別の目標 kcal / PFC
-export function calcTargets(pr, { training = false } = {}) {
+// activity: その日の { steps, distanceKm, activeKcal }。pr.activityLink が有効なら、
+// 活動レベルを「ほぼ運動しない(1.2)」にして、実際の活動消費を上乗せする（二重計上を防ぐ）
+export function calcTargets(pr, { training = false, activity = null } = {}) {
   const bmr = 10 * pr.weight + 6.25 * pr.height - 5 * pr.age + (pr.sex === 'male' ? 5 : -161);
-  const tdee = bmr * Number(pr.activity);
+  const linked = !!pr.activityLink;
+  const exercise = linked && activity
+    ? (activity.activeKcal > 0 ? activity.activeKcal : stepsKcal(activity.steps, pr.weight))
+    : 0;
+  const tdee = bmr * (linked ? 1.2 : Number(pr.activity)) + exercise;
   const factor = { cut: 0.8, maintain: 1.0, bulk: 1.1 }[pr.goal] ?? 1;
   const proteinPerKg = { cut: 2.2, maintain: 1.8, bulk: 2.0 }[pr.goal] ?? 1.8;
   let kcal = tdee * factor;
@@ -24,7 +33,7 @@ export function calcTargets(pr, { training = false } = {}) {
     c += cycle;
     kcal += cycle * 4;
   }
-  return { bmr: round(bmr), tdee: round(tdee), kcal: round(kcal), p: round(p), f: round(f), c: round(c), cycle: round(cycle) };
+  return { bmr: round(bmr), tdee: round(tdee), kcal: round(kcal), p: round(p), f: round(f), c: round(c), cycle: round(cycle), exercise: round(exercise), linked };
 }
 
 export function sumEntries(entries) {

@@ -48,6 +48,7 @@
         <div class="macros" id="macroBars"></div>
         <p class="hint" id="proteinHint"></p>
       </div>
+      <div class="card activity-card" id="activityCard"></div>
       <div id="meals"></div>
       <div class="row two">
         <button id="copyPrev" class="btn ghost">前日の食事をコピー</button>
@@ -139,6 +140,8 @@
           </label>
           <label class="check"><input type="checkbox" name="carbCycle"> トレ日／休養日で目標を変える（カーボサイクル）</label>
           <p class="hint indent">トレ日は炭水化物を増やして＋10%、休養日は−10%。筋トレを記録した日は自動でトレ日になります。</p>
+          <label class="check"><input type="checkbox" name="activityLink"> 歩数・活動カロリーを目標に反映する</label>
+          <p class="hint indent">オンにすると活動レベルは「ほぼ運動しない」で計算し、その日の実際の活動消費（ヘルスケアのアクティブエネルギー、なければ歩数からの概算）を上乗せします。歩数を取り込むまでは目標が低めになります。</p>
           <label class="check"><input type="checkbox" name="manual" id="manualToggle"> 目標値を手動で設定する</label>
           <div id="manualFields" class="grid2 hidden">
             <label>kcal <input type="number" name="mKcal" min="0"></label>
@@ -153,6 +156,23 @@
         <h2>計算結果</h2>
         <dl id="calcResult" class="calc"></dl>
         <p class="hint">基礎代謝はMifflin-St Jeor式で推定。減量はTDEE×0.8、増量はTDEE×1.1、たんぱく質は体重×（減量2.2／維持1.8／増量2.0）g、脂質は総カロリーの25%、残りを炭水化物に配分しています。あくまで目安なので、体重推移を見て調整してください。</p>
+      </div>
+      <div class="card">
+        <h2>ヘルスケア連携（iPhone）</h2>
+        <p class="hint">ブラウザのアプリはヘルスケアを直接読めないため、iPhoneの「ショートカット」アプリで歩数などを渡します（最初に1回設定すれば、毎日自動にもできます）。</p>
+        <ol class="steps-list">
+          <li>「ショートカット」アプリで新規ショートカットを作成</li>
+          <li>「ヘルスケアサンプルを検索」を追加：種類＝<b>歩数</b>、開始日＝<b>今日</b> → 続けて「統計を計算」（合計）</li>
+          <li>同様に <b>歩行＋ランニングの距離</b>（km）と <b>アクティブエネルギー</b>（kcal）の合計も作る</li>
+          <li>「テキスト」を追加して、下のひな形を貼り付け、［ ］の部分を上の合計（変数）に置き換える。［日付］は「現在の日付」を書式「yyyy-MM-dd」で</li>
+          <li>最後に、<b>Safariで使う人</b>は「URLを開く」、<b>ホーム画面アプリで使う人</b>は「クリップボードにコピー」を追加</li>
+          <li>「オートメーション」で毎日21時などに実行すると自動化できます</li>
+        </ol>
+        <div class="row two">
+          <button type="button" class="btn ghost" id="copyHealthUrl">URL版ひな形をコピー</button>
+          <button type="button" class="btn ghost" id="copyHealthText">コピー版ひな形をコピー</button>
+        </div>
+        <p class="hint">クリップボード版は、食事画面の「📋 ヘルスケアから取り込む」を押すと読み込まれます。Androidは現状ブラウザから歩数を読む手段がないため、手入力に対応しています。</p>
       </div>
       <div class="card" id="groupCard">
         <h2>友達グループ（食品共有）</h2>

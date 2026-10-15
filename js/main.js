@@ -8,6 +8,7 @@ import { renderAchievements, checkAchievements, statusChipText } from './achieve
 import { openShare } from './share.js';
 import { readInviteFromUrl, joinGroup, groupCode } from './group.js';
 import { toast } from './dom.js';
+import { readHealthFromUrl, saveActivity, activityText } from './health.js';
 
 const GOAL_LABEL = { cut: '減量中', maintain: '維持', bulk: '増量中' };
 const VIEWS = { today: renderToday, training: renderTraining, weight: renderWeight, achievements: renderAchievements, settings: renderSettings };
@@ -48,6 +49,13 @@ document.addEventListener('visibilitychange', () => {
 
 onChange(render);
 onChange(checkAchievements);
+// ショートカットからURLで歩数が渡された場合
+const healthRec = readHealthFromUrl();
+if (healthRec) {
+  saveActivity(healthRec);
+  setTimeout(() => toast(`ヘルスケアから取り込みました：${activityText(db.state.activity[healthRec.date])}`), 300);
+}
+
 // 招待リンクから開かれたらグループに参加
 const invite = readInviteFromUrl();
 history.replaceState(null, '', location.pathname);

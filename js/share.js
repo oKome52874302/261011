@@ -1,6 +1,6 @@
 // 週間レポートを作って LINE などに送る
-import { db, todayKey, shiftKey, fromKey, isTrainingDay } from './store.js';
-import { calcTargets, sumEntries, e1rm, round } from './calc.js';
+import { db, todayKey, shiftKey, fromKey, dayTargets } from './store.js';
+import { sumEntries, e1rm, round } from './calc.js';
 import { $, $$, toast } from './dom.js';
 import { computeStats, levelInfo, ACHIEVEMENTS } from './achievements.js';
 
@@ -25,7 +25,7 @@ export function weekReport(monday) {
   for (const k of days) {
     const entries = s.logs[k] || [];
     if (entries.length) {
-      const t = calcTargets(s.profile, { training: isTrainingDay(k) });
+      const t = dayTargets(k);
       const tot = sumEntries(entries);
       logDays++;
       kcalSum += tot.kcal; kcalTargetSum += t.kcal; pSum += tot.p;
@@ -51,6 +51,13 @@ export function weekReport(monday) {
     }
   }
 
+  let stepSum = 0, stepDays = 0, kmSum = 0;
+  for (const k of days) {
+    const a = s.activity?.[k];
+    if (a?.steps != null) { stepSum += a.steps; stepDays++; }
+    if (a?.distanceKm) kmSum += a.distanceKm;
+  }
+
   const weights = Object.keys(s.weights).filter((k) => k >= monday && k <= end).sort();
   const unlocked = ACHIEVEMENTS.filter((a) => {
     const d = s.achievements?.[a.id];
@@ -65,6 +72,7 @@ export function weekReport(monday) {
     kcalRate: kcalTargetSum ? round((kcalSum / kcalTargetSum) * 100) : 0,
     avgP: logDays ? round(pSum / logDays) : 0,
     prs, prNames: [...prNames],
+    avgSteps: stepDays ? round(stepSum / stepDays) : 0, totalKm: round(kmSum, 1),
     weightFrom: weights.length ? s.weights[weights[0]] : null,
     weightTo: weights.length > 1 ? s.weights[weights.at(-1)] : null,
     unlocked, streak: st.streak, level: levelInfo(st.xp),
@@ -82,6 +90,7 @@ export function reportText(r) {
     lines.push(`🍚 平均 ${r.avgKcal.toLocaleString()}kcal（目標の${r.kcalRate}%）`);
   }
   lines.push(r.workoutDays ? `🏋️ 筋トレ ${r.workoutDays}日・${r.sets}セット・総ボリューム ${r.volume.toLocaleString()}kg` : '🏋️ 筋トレ 0日');
+  if (r.avgSteps || r.totalKm) lines.push(`👟 平均 ${r.avgSteps.toLocaleString()}歩・合計 ${r.totalKm}km`);
   if (r.prs) lines.push(`🎉 自己ベスト更新 ${r.prs}回（${r.prNames.join('・')}）`);
   if (r.unlocked.length) lines.push(`🏆 実績解除：${achievementNames(r.unlocked)}`);
   lines.push(`🔥 連続記録 ${r.streak}日 ・ Lv${r.level.lv} ${r.level.title}`);
@@ -182,7 +191,9 @@ async function build(which) {
 export function openShare() {
   // 月曜で今週の記録がまだ無ければ先週を初期表示
   const thisMonday = mondayOf(todayKey());
-  const empty = !Object.keys(db.state.logs).some((k) => k >= thisMonday && db.state.logs[k].length);
+  const s = db.state;
+  const has = (obj, ok) => Object.keys(obj || {}).some((k) => k >= thisMonday && ok(obj[k]));
+  const empty = !has(s.logs, (v) => v.length) && !has(s.workouts, (v) => v.some((w) => w.sets.length)) && !has(s.activity, () => true);
   build(empty ? 'last' : 'this');
   dialog.showModal();
 }

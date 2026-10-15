@@ -138,6 +138,13 @@
               <option value="bulk">増量（バルクアップ）</option>
             </select>
           </label>
+          <label>手の大きさ（目分量の基準）
+            <select name="handScale">
+              <option value="0.85">小さめ（手のひら≒85g）</option>
+              <option value="1">ふつう（手のひら≒100g）</option>
+              <option value="1.15">大きめ（手のひら≒115g）</option>
+            </select>
+          </label>
           <label class="check"><input type="checkbox" name="carbCycle"> トレ日／休養日で目標を変える（カーボサイクル）</label>
           <p class="hint indent">トレ日は炭水化物を増やして＋10%、休養日は−10%。筋トレを記録した日は自動でトレ日になります。</p>
           <label class="check"><input type="checkbox" name="activityLink"> 歩数・活動カロリーを目標に反映する</label>
@@ -242,9 +249,14 @@
     <div class="quick-actions">
       <button id="aiLabelBtn">🏷<span>成分表示を撮影</span></button>
       <button id="barcodeBtn">▥<span>バーコード</span></button>
-      <button id="aiMealBtn">📷<span>食事写真AI</span><small id="aiMealNeedKey" class="need-key">要APIキー</small></button>
+      <button id="recipeBtn">📖<span>レシピから</span></button>
+      <button id="aiMealBtn">📷<span>食事写真</span></button>
     </div>
     <input type="file" id="photoInput" accept="image/*" hidden>
+    <div id="refPhoto" class="ref-photo hidden">
+      <img id="refPhotoImg" alt="記録中の食事写真（タップで拡大）">
+      <button type="button" id="refPhotoClose" class="icon" aria-label="写真を閉じる">✕</button>
+    </div>
     <div class="seg" id="addSeg">
       <button data-mode="search" class="active">食品</button>
       <button data-mode="templates">セット</button>
@@ -298,6 +310,38 @@
       <p id="aiNote" class="hint"></p>
       <button id="aiAdd" class="btn full hidden">チェックした食品を追加</button>
     </div>
+  </dialog>
+
+  <!-- レシピから計算 -->
+  <dialog id="recipeDialog">
+    <div class="dialog-head">
+      <h2>レシピからPFCを計算</h2>
+      <button class="icon" id="recipeClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="row two">
+      <button id="recipePhotoBtn" class="btn ghost">📷 写真から</button>
+      <button id="recipePdfBtn" class="btn ghost">📄 PDFから</button>
+    </div>
+    <input type="file" id="recipePhoto" accept="image/*" hidden>
+    <input type="file" id="recipePdf" accept="application/pdf" hidden>
+    <div id="recipeStatus" class="ai-status"></div>
+    <label class="stack">レシピのテキスト（読み取った内容／レシピサイトからコピーして貼り付けもOK）
+      <textarea id="recipeText" rows="5" placeholder="例）&#10;材料（2人分）&#10;鶏むね肉 1枚(300g)&#10;玉ねぎ 1/2個&#10;しょうゆ 大さじ2"></textarea>
+    </label>
+    <div class="row recipe-meta">
+      <input id="recipeName" placeholder="料理名" maxlength="40">
+      <label class="sv"><input id="recipeServings" type="number" min="1" step="1" value="1" inputmode="numeric">人分</label>
+    </div>
+    <ul id="recipeRows" class="list recipe-rows"></ul>
+    <datalist id="foodNameList"></datalist>
+    <div id="recipeTotal" class="recipe-total"></div>
+    <div id="recipeActions" class="hidden">
+      <div class="row two">
+        <button id="recipeAdd" class="btn">1人分を記録</button>
+        <button id="recipeSave" class="btn ghost">マイ食品に保存</button>
+      </div>
+    </div>
+    <p class="hint">「大さじ2」「1/2個」「1枚(300g)」などをgに換算して、食品データと照合します。調味料の量や、食品の当てはめが合っているか確認してください（「少々」「適量」は0として計算）。</p>
   </dialog>
 
   <!-- メニュー編集 -->

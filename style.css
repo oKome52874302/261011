@@ -278,3 +278,32 @@ a.btn.full { display: block; }
 #addShortcutBtn { margin: 10px 0 4px; }
 .add-btn.pulse { background: var(--accent); color: #052e16; animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(34, 197, 94, .35); } }
+
+/* ---- 目分量・写真 ---- */
+.quick-actions { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.quick-actions button span { font-size: 10px; white-space: nowrap; }
+.ref-photo { position: relative; margin-top: 10px; }
+.ref-photo img { width: 100%; max-height: 22vh; object-fit: cover; border-radius: 12px; display: block; cursor: zoom-in; transition: max-height .2s; }
+.ref-photo.big img { max-height: 60vh; object-fit: contain; background: #000; cursor: zoom-out; }
+.ref-photo .icon { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.55); border-radius: 50%; width: 30px; height: 30px; padding: 0; color: #fff; font-size: 14px; }
+.choice-row { display: flex; gap: 8px; border: 0 !important; }
+.choice-row .btn { flex: 1; }
+
+/* ---- レシピ ---- */
+#recipeDialog .row.two { margin-top: 10px; }
+.recipe-meta { margin: 6px 0 10px; }
+.recipe-meta .sv { display: flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--muted); font-size: 13px; flex: 0 0 auto; }
+.recipe-meta .sv input { width: 64px; }
+.recipe-rows { max-height: 40vh; overflow-y: auto; }
+.recipe-rows li.rc-row { display: block; padding: 8px 0; }
+.rc-row.off { opacity: .45; }
+.rc-row.warn .rc-food, .rc-row.warn .rc-g { border-color: var(--f); }
+.rc-top { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; }
+.rc-top input { width: auto; }
+.rc-raw { overflow-wrap: anywhere; }
+.rc-bottom { display: grid; grid-template-columns: 1fr 72px 64px; gap: 6px; align-items: center; }
+.rc-bottom input { padding: 6px 8px; font-size: 13px; }
+.rc-k { text-align: right; }
+.recipe-total { background: var(--bg); border-radius: 10px; padding: 10px 12px; margin: 10px 0; font-size: 14px; line-height: 1.8; }
+.rc-per b { color: var(--accent); font-size: 16px; }
+.warn-text { color: var(--f); font-size: 12px; }

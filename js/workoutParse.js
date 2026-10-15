@@ -33,7 +33,8 @@ export function canonicalExercise(name) {
 // OCRは日本語の文字間に空白を入れがちなので詰める（「ベン チ」→「ベンチ」）
 const JA = '\\u3040-\\u30ff\\u3400-\\u9fff';
 export function squeezeJa(s) {
-  return String(s).normalize('NFKC').replace(new RegExp(`([${JA}])\\s+(?=[${JA}])`, 'g'), '$1');
+  // 空白・タブだけを詰める（改行は行の区切りとして残す）
+  return String(s).normalize('NFKC').replace(new RegExp(`([${JA}])[ \\t\\u3000]+(?=[${JA}])`, 'g'), '$1');
 }
 
 function normalize(s) {

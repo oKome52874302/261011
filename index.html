@@ -157,22 +157,45 @@
         <dl id="calcResult" class="calc"></dl>
         <p class="hint">基礎代謝はMifflin-St Jeor式で推定。減量はTDEE×0.8、増量はTDEE×1.1、たんぱく質は体重×（減量2.2／維持1.8／増量2.0）g、脂質は総カロリーの25%、残りを炭水化物に配分しています。あくまで目安なので、体重推移を見て調整してください。</p>
       </div>
-      <div class="card">
+      <div class="card" id="healthCard">
         <h2>ヘルスケア連携（iPhone）</h2>
-        <p class="hint">ブラウザのアプリはヘルスケアを直接読めないため、iPhoneの「ショートカット」アプリで歩数などを渡します（最初に1回設定すれば、毎日自動にもできます）。</p>
-        <ol class="steps-list">
-          <li>「ショートカット」アプリで新規ショートカットを作成</li>
-          <li>「ヘルスケアサンプルを検索」を追加：種類＝<b>歩数</b>、開始日＝<b>今日</b> → 続けて「統計を計算」（合計）</li>
-          <li>同様に <b>歩行＋ランニングの距離</b>（km）と <b>アクティブエネルギー</b>（kcal）の合計も作る</li>
-          <li>「テキスト」を追加して、下のひな形を貼り付け、［ ］の部分を上の合計（変数）に置き換える。［日付］は「現在の日付」を書式「yyyy-MM-dd」で</li>
-          <li>最後に、<b>Safariで使う人</b>は「URLを開く」、<b>ホーム画面アプリで使う人</b>は「クリップボードにコピー」を追加</li>
-          <li>「オートメーション」で毎日21時などに実行すると自動化できます</li>
-        </ol>
-        <div class="row two">
-          <button type="button" class="btn ghost" id="copyHealthUrl">URL版ひな形をコピー</button>
-          <button type="button" class="btn ghost" id="copyHealthText">コピー版ひな形をコピー</button>
-        </div>
-        <p class="hint">クリップボード版は、食事画面の「📋 ヘルスケアから取り込む」を押すと読み込まれます。Androidは現状ブラウザから歩数を読む手段がないため、手入力に対応しています。</p>
+        <p class="hint">ブラウザのアプリはヘルスケアを直接読めないため、iPhoneの「ショートカット」アプリが歩数・距離・活動カロリーを渡します。</p>
+        <a id="addShortcutBtn" class="btn line full hidden" target="_blank" rel="noopener">⚡ ワンタップでショートカットを追加</a>
+        <p id="addShortcutHint" class="hint hidden">開いた画面で「ショートカットを追加」を押すだけで完了です。初回の実行時にヘルスケアへのアクセスを「許可」してください。</p>
+        <details id="shortcutGuide" class="guide">
+          <summary>📖 ショートカットの作り方（約5分・最初の1人だけでOK）</summary>
+          <ol class="steps-list">
+            <li>下の「ショートカットアプリを開く」で新規作成し、名前を <b class="mono" data-shortcut-name></b> にする（アプリの同期ボタンがこの名前で呼び出します）</li>
+            <li>「アクションを検索」で <b>ヘルスケアサンプルを検索</b> を追加し、種類＝<b>歩数</b>、開始日＝<b>今日</b> にする</li>
+            <li><b>統計を計算</b> を追加して <b>合計</b> にする（入力は直前のヘルスケアサンプル）</li>
+            <li>2〜3 を <b>歩行＋ランニングの距離</b> と <b>アクティブエネルギー</b> でもう2回くり返す</li>
+            <li><b>日付を書式設定</b> を追加：日付＝<b>現在の日付</b>、日付のフォーマット＝<b>カスタム</b>、形式＝<b class="mono">yyyy-MM-dd</b></li>
+            <li><b>テキスト</b> を追加し、「ひな形をコピー」で貼り付けて、［日付］［歩数］［距離］［アクティブエネルギー］を 5・3・4 の結果（変数）に置き換える</li>
+            <li><b>クリップボードにコピー</b> を追加（入力＝テキスト）</li>
+            <li><b>出力を停止</b>（ショートカットの出力を停止）を追加（出力＝テキスト）</li>
+            <li>▶ で一度実行し、ヘルスケアへのアクセスを「許可」。MacroLog に戻って「📋 取り込む」で数値が入れば完成</li>
+          </ol>
+          <div class="row two">
+            <a class="btn ghost" href="shortcuts://create-shortcut">ショートカットアプリを開く</a>
+            <button type="button" class="btn ghost" id="copyHealthText">ひな形をコピー</button>
+          </div>
+          <p class="hint">iOSのバージョンによって、アクション名が少し違う場合があります。</p>
+          <h3 class="guide-h">友達に配る（ワンタップ追加にする）</h3>
+          <p class="hint">完成したショートカットの「…」→ 共有 →「iCloudリンクをコピー」。下に貼って保存するとこの端末に「ワンタップで追加」が出ます。リンクを開発者に送れば、全員のアプリに組み込めます。</p>
+          <form id="shortcutLinkForm" class="row">
+            <input name="url" placeholder="https://www.icloud.com/shortcuts/..." autocomplete="off">
+            <button class="btn ghost">保存</button>
+          </form>
+        </details>
+        <details class="guide">
+          <summary>⏰ 毎日自動で実行する</summary>
+          <ol class="steps-list">
+            <li>ショートカットアプリ下の <b>オートメーション</b> →「＋」→ <b>時刻</b>（例：毎日 21:00）</li>
+            <li><b>すぐに実行</b> を選び、アクションに「ショートカットを実行」→ <b data-shortcut-name></b></li>
+            <li>あとは MacroLog を開いて「📋 取り込む」を押すだけ（食事画面の「🔄 同期」からも実行できます）</li>
+          </ol>
+        </details>
+        <p class="hint">Androidは現状ブラウザから歩数を読む手段がないため、食事画面の ✎ から手入力できます。</p>
       </div>
       <div class="card" id="groupCard">
         <h2>友達グループ（食品共有）</h2>

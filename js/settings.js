@@ -8,13 +8,33 @@ import {
   inviteUrl, inviteText, refreshGroupFoods, shareFood,
 } from './group.js';
 import { SUPABASE_URL } from './config.js';
-import { SHORTCUT_URL_TEMPLATE, SHORTCUT_TEXT_TEMPLATE } from './health.js';
+import { SHORTCUT_TEXT_TEMPLATE, shortcutLink } from './health.js';
+import { SHORTCUT_NAME } from './config.js';
 
 const copyText = async (text, label) => {
   try { await navigator.clipboard.writeText(text); toast(`${label}をコピーしました`); } catch { prompt(label, text); }
 };
-$('#copyHealthUrl').onclick = () => copyText(SHORTCUT_URL_TEMPLATE, 'URL版ひな形');
-$('#copyHealthText').onclick = () => copyText(SHORTCUT_TEXT_TEMPLATE, 'コピー版ひな形');
+$('#copyHealthText').onclick = () => copyText(SHORTCUT_TEXT_TEMPLATE, 'ひな形');
+document.querySelectorAll('[data-shortcut-name]').forEach((n) => { n.textContent = SHORTCUT_NAME; });
+$('#shortcutLinkForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const url = e.target.elements.url.value.trim();
+  if (url && !/^https:\/\/www\.icloud\.com\/shortcuts\//.test(url)) return toast('iCloudのショートカットリンク（https://www.icloud.com/shortcuts/…）を貼ってください');
+  db.state.healthShortcutUrl = url;
+  save();
+  toast(url ? 'ショートカットのリンクを保存しました' : 'リンクを削除しました');
+});
+
+function renderHealthCard() {
+  const link = shortcutLink();
+  $('#addShortcutBtn').classList.toggle('hidden', !link);
+  $('#addShortcutHint').classList.toggle('hidden', !link);
+  if (link) $('#addShortcutBtn').href = link;
+  $('#shortcutGuide').open = !link && !$('#shortcutGuide').dataset.touched;
+  $('#shortcutLinkForm').elements.url.value = db.state.healthShortcutUrl || '';
+}
+// ユーザーが自分で開閉したら、以降は自動で開閉しない
+$('#shortcutGuide summary').addEventListener('click', () => { $('#shortcutGuide').dataset.touched = '1'; });
 
 const pf = $('#profileForm');
 
@@ -30,6 +50,7 @@ export function renderSettings() {
   renderCalc();
 
   renderGroup();
+  renderHealthCard();
 
   const af = $('#aiForm');
   af.elements.apiKey.value = getApiKey();

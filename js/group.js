@@ -1,6 +1,6 @@
 // 友達グループでバーコード商品を共有する（Supabase の REST API を直接呼ぶ）
 import { db, save } from './store.js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SHORTCUT_ICLOUD_URL } from './config.js';
 
 const CACHE_KEY = 'macrolog-group-cache';
 const APP_URL = location.origin + location.pathname.replace(/index\.html$/, '');
@@ -126,6 +126,8 @@ export function inviteUrl() {
   const p = new URLSearchParams({ join: groupCode() });
   // サーバー設定がコードに埋め込まれていない場合は招待リンクに含める
   if (!SUPABASE_URL) { const c = serverConfig(); p.set('s', b64url(JSON.stringify({ u: c.url, k: c.key }))); }
+  // ヘルスケア用ショートカットの共有リンクも一緒に配る
+  if (!SHORTCUT_ICLOUD_URL && db.state.healthShortcutUrl) p.set('sc', db.state.healthShortcutUrl);
   return `${APP_URL}?${p}`;
 }
 
@@ -140,5 +142,6 @@ export function readInviteFromUrl() {
   if (!code) return null;
   let server = null;
   try { if (p.get('s')) { const j = JSON.parse(unb64url(p.get('s'))); server = { url: j.u, key: j.k }; } } catch { /* 壊れたリンク */ }
-  return { code: normalizeCode(code), server };
+  const sc = p.get('sc');
+  return { code: normalizeCode(code), server, shortcut: sc && /^https:\/\/www\.icloud\.com\/shortcuts\//.test(sc) ? sc : null };
 }

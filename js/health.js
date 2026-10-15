@@ -5,6 +5,7 @@
 // のどちらかで受け取る。
 import { db, save, todayKey } from './store.js';
 import { round } from './calc.js';
+import { SHORTCUT_ICLOUD_URL, SHORTCUT_NAME } from './config.js';
 
 const APP_URL = location.origin + location.pathname.replace(/index\.html$/, '');
 
@@ -65,9 +66,30 @@ export function activityText(a) {
 // 起動時：URLで渡された場合
 export function readHealthFromUrl() {
   const p = new URLSearchParams(location.search);
+  // 「同期」ボタンから実行したショートカットの出力（x-success に result として付く）
+  if (p.has('result')) return parseHealthPayload(p.get('result'));
   if (!p.has('health') && !p.has('steps')) return null;
   return parseHealthPayload(location.search);
 }
+
+export const shortcutLink = () => SHORTCUT_ICLOUD_URL || db.state.healthShortcutUrl || '';
+export const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+export const isStandalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+
+// アプリからショートカットを実行する。
+// Safari では x-callback-url で終了後にこのページへ戻り、出力（result）をそのまま取り込む。
+// ホーム画面アプリは戻り先に指定できないため、ショートカットがコピーした内容を戻ってから取り込む。
+let ranAt = 0;
+export function runShortcut() {
+  ranAt = Date.now();
+  const name = encodeURIComponent(SHORTCUT_NAME);
+  location.href = isStandalone()
+    ? `shortcuts://run-shortcut?name=${name}`
+    : `shortcuts://x-callback-url/run-shortcut?name=${name}&x-success=${encodeURIComponent(`${APP_URL}?health=cb`)}`;
+}
+// ショートカット実行から2分以内にアプリへ戻ってきたか
+export const justReturnedFromShortcut = () => ranAt && Date.now() - ranAt < 120000;
+export const clearShortcutRun = () => { ranAt = 0; };
 
 // クリップボードから（ボタン押下時に呼ぶ）
 export async function readHealthFromClipboard() {
@@ -80,5 +102,4 @@ export async function readHealthFromClipboard() {
   return parseHealthPayload(text);
 }
 
-export const SHORTCUT_URL_TEMPLATE = `${APP_URL}?health=1&date=［日付］&steps=［歩数］&dist=［距離］&kcal=［アクティブエネルギー］`;
 export const SHORTCUT_TEXT_TEMPLATE = 'health=1&date=［日付］&steps=［歩数］&dist=［距離］&kcal=［アクティブエネルギー］';

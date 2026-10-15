@@ -3,7 +3,7 @@ import { db, save, uid, shiftKey, isTrainingDay, dayTargets } from './store.js';
 import { sumEntries, round } from './calc.js';
 import { $, el, setBar, toast } from './dom.js';
 import { openAdd, saveTemplate } from './addFood.js';
-import { activityText, readHealthFromClipboard, saveActivity } from './health.js';
+import { activityText, readHealthFromClipboard, saveActivity, isIOS, runShortcut, justReturnedFromShortcut, clearShortcutRun } from './health.js';
 
 export const MEALS = [
   { id: 'breakfast', label: '朝食' },
@@ -97,6 +97,16 @@ $('#copyPrev').onclick = () => {
 
 // ---------- 歩数・活動 ----------
 let editingActivity = false;
+let pendingImport = false;
+// 「同期」でショートカットを実行して戻ってきたら、取り込みボタンを目立たせる（クリップボードの読み取りはタップが必要）
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && justReturnedFromShortcut()) {
+    clearShortcutRun();
+    pendingImport = true;
+    toast('「📋 取り込む」を押すと歩数を反映します');
+    renderToday();
+  }
+});
 function renderActivity(t) {
   const a = db.state.activity?.[db.date];
   const card = $('#activityCard');
@@ -105,7 +115,8 @@ function renderActivity(t) {
       el('div', { class: a ? 'activity-val' : 'muted' }, a ? activityText(a) : '👟 歩数・距離は未記録'),
       t.linked && el('div', { class: 'muted small' }, a ? `活動消費 +${t.exercise}kcal を目標に反映中` : '歩数を取り込むと目標に活動分が加算されます')),
     el('div', { class: 'meal-actions' },
-      el('button', { class: 'add-btn', onclick: importFromClipboard }, '📋 取り込む'),
+      isIOS() && el('button', { class: 'add-btn', onclick: runShortcut, title: 'ショートカットを実行して歩数を取得' }, '🔄 同期'),
+      el('button', { class: `add-btn${pendingImport ? ' pulse' : ''}`, onclick: importFromClipboard }, '📋 取り込む'),
       el('button', { class: 'icon', 'aria-label': '手入力', onclick: () => { editingActivity = !editingActivity; renderActivity(t); } }, '✎')));
   const children = [head];
   if (editingActivity) {
@@ -125,6 +136,7 @@ function renderActivity(t) {
 }
 
 async function importFromClipboard() {
+  pendingImport = false;
   const rec = await readHealthFromClipboard();
   if (!rec) return toast('ヘルスケアのデータが見つかりませんでした（ショートカットでコピーしてから押してください）');
   saveActivity(rec);

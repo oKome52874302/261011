@@ -80,7 +80,8 @@
 
 ## 構成
 ```
-index.html / style.css / manifest.json / icon.svg
+index.html / style.css / manifest.json
+icons/       ホーム画面・ブラウザ用アイコン（icon.svg が元データ、PNGは各サイズ）
 js/
   main.js      タブ・日付切替・再描画
   store.js     状態の保存/読込、日付ユーティリティ

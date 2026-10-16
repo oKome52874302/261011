@@ -19,7 +19,7 @@ function render() {
   $('#dateNav').classList.toggle('hidden', !['today', 'training'].includes(view));
   $('#statusChip').textContent = statusChipText();
   const t = targetsFor(db.date);
-  $('#goalBadge').textContent = `${GOAL_LABEL[db.state.profile.goal]} ・ 目標 ${t.kcal}kcal`;
+  $('#goalBadge').textContent = `${GOAL_LABEL[db.state.profile.goal]} ${t.kcal}kcal`;
   VIEWS[view]();
 }
 

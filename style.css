@@ -322,3 +322,12 @@ a.btn.full { display: block; }
 .sm-row { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .sm-row input, .sm-row select { margin: 0; padding: 8px; }
 .sport-line { font-size: 14px; margin-top: 2px; }
+
+/* ---- アイコン ---- */
+.brand-icon { width: 28px; height: 28px; border-radius: 7px; display: block; }
+/* ホーム画面アプリでステータスバーに重ならないように */
+.topbar { padding-top: max(14px, env(safe-area-inset-top)); }
+.topbar h1 { font-size: 18px; }
+.topbar .brand { gap: 6px; min-width: 0; }
+.status-chip, .goal-badge { white-space: nowrap; }
+.goal-badge { font-size: 11px; padding: 4px 8px; }
